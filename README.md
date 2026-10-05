@@ -1,10 +1,10 @@
 # dsh-monitor
 
-DeepSeek Harness pro monitorování informací na webech.
+DeepSeek Harness pro monitorování informací na internetu.
 
-Tento repozitář obsahuje agenty, kteří jsou spouštěni denně pomocí GitHub Actions.
-Každý agent je definován v samostatném prompt souboru ve složce `prompts/`.
-Výsledky se ukládají do složky `output/<datum>/` a jsou automaticky commitovány zpět do repozitáře.
+Agenti jsou spouštěni denně pomocí GitHub Actions (cron). Každý agent je definován
+v samostatném prompt souboru ve složce `prompts/`. Výsledky se ukládají do složky
+`output/<datum>/` a jsou automaticky commitovány zpět do repozitáře.
 
 ## Struktura
 
@@ -14,4 +14,5 @@ Výsledky se ukládají do složky `output/<datum>/` a jsou automaticky commitov
 
 ## Jak přidat nový monitor
 
-Stačí do složky `prompts/` přidat nový `.md` soubor. Workflow ho při dalším běhu automaticky zařadí.
+Stačí do složky `prompts/` přidat nový `.md` soubor s popisem úkolu.
+Workflow ho při dalším běhu automaticky zařadí a spustí.
