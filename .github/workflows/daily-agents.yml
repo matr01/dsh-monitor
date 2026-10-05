@@ -30,6 +30,15 @@ jobs:
             config:
               provider: groq
               model: qwen/qwen3.8-27b
+          - id: tools
+            config:
+              mode: ptc
+          - id: compaction-basic
+            config:
+              thresholdRatio: 0.4
+              headroomTokens: 512
+              retainTokens: 512
+              maxTokens: 512
           - id: llm-pi-ai
             config:
               providers:
@@ -48,6 +57,8 @@ jobs:
                       jitterRatio: 0.2
                   models:
                     - id: qwen/qwen3.8-27b
+                      contextWindow: 7000
+                      maxTokens: 512
                       compat:
                         supportsDeveloperRole: false
           EOF
