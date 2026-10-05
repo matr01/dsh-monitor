@@ -43,8 +43,8 @@ jobs:
                     mode: normal
                     maxRetries: 5
                     backoff:
-                      initialDelayMs: 1000
-                      maxDelayMs: 30000
+                      initialDelayMs: 10000
+                      maxDelayMs: 60000
                       jitterRatio: 0.2
                   models:
                     - id: qwen/qwen3.8-27b
