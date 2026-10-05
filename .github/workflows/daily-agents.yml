@@ -21,12 +21,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure DSH for Groq
+        run: |
+          export DSH_HOME=/workspace/.dsh
+          mkdir -p $DSH_HOME
+          cat > $DSH_HOME/settings.yaml << 'EOF'
+          agent-default-model:
+            provider: groq
+            model: qwen/qwen3.8-27b
+            reasoningEffort: low
+
+          llm-pi-ai:
+            providers:
+              groq:
+                api: openai-completions
+                baseURL: https://api.groq.com/openai/v1
+                apiKeyEnv: GROQ_API_KEY
+                models:
+                  - id: qwen/qwen3.8-27b
+          EOF
+      
       - name: Run all monitor agents sequentially
         env:
+          DSH_HOME: /workspace/.dsh
           DSH_MODEL_PROVIDER: "openai-compatible"
           DSH_MODEL_BASE_URL: "https://api.groq.com/openai/v1"
           DSH_MODEL_NAME: "qwen/qwen3.8-27b"
           DSH_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           TODAY=$(date -u +%Y-%m-%d)
 
@@ -36,7 +58,12 @@ jobs:
           done
 
           mkdir -p output/$TODAY
-          mv *.md output/$TODAY/ 2>/dev/null || true    # Předpokládáme, že agent vytvořil soubory v kořeni
+          # Předpokládáme, že agent vytvořil soubory v kořeni
+          for f in *.md; do
+            [ -f "$f" ] || continue
+            [ "$f" = "README.md" ] && continue
+            mv "$f" output/$TODAY/
+          done
 
       - name: Commit and push results
         run: |
