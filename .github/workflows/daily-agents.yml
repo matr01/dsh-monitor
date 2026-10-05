@@ -1,0 +1,50 @@
+name: Daily Research Agents
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # Každý den ve 3:00 UTC
+  workflow_dispatch:       # Ruční spuštění
+
+permissions:
+  contents: write
+
+jobs:
+  run-agents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    container:
+      image: misaka-link/deepseek-harness-docker:latest
+      options: --user root
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run all monitor agents sequentially
+        env:
+          DSH_MODEL_PROVIDER: "openai-compatible"
+          DSH_MODEL_BASE_URL: "https://api.cerebras.ai/v1"
+          DSH_MODEL_NAME: "llama-3.3-70b"
+          DSH_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          mkdir -p output/$TODAY
+
+          for prompt_file in prompts/*.md; do
+            echo "=== Spouštím: $prompt_file ==="
+            dsh run \
+              --prompt-file "$prompt_file" \
+              --workspace /workspace \
+              --output-dir /workspace/output/$TODAY \
+              --timeout 45m
+          done
+
+      - name: Commit and push results
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/$TODAY/
+          git diff --staged --quiet || git commit -m "Daily results $TODAY"
+          git push
