@@ -37,8 +37,12 @@ jobs:
                   api: openai-completions
                   baseURL: https://api.groq.com/openai/v1
                   apiKeyEnv: GROQ_API_KEY
+                  compat:
+                    supportsDeveloperRole: false
                   models:
                     - id: qwen/qwen3.8-27b
+                      compat:
+                        supportsDeveloperRole: false
           EOF
       
       - name: Run all monitor agents sequentially
