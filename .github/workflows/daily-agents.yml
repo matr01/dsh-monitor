@@ -39,6 +39,13 @@ jobs:
                   apiKeyEnv: GROQ_API_KEY
                   compat:
                     supportsDeveloperRole: false
+                  retryPolicy:
+                    mode: normal
+                    maxRetries: 5
+                    backoff:
+                      initialDelayMs: 1000
+                      maxDelayMs: 30000
+                      jitterRatio: 0.2
                   models:
                     - id: qwen/qwen3.8-27b
                       compat:
