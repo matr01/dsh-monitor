@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 180
 
     container:
-      image: misaka-link/deepseek-harness-docker:latest
+      image: smanx/deepseek-harness:latest
       options: --user root
 
     steps:
