@@ -29,16 +29,14 @@ jobs:
           DSH_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           TODAY=$(date -u +%Y-%m-%d)
-          mkdir -p output/$TODAY
 
           for prompt_file in prompts/*.md; do
             echo "=== Spouštím: $prompt_file ==="
-            dsh run \
-              --prompt-file "$prompt_file" \
-              --workspace /workspace \
-              --output-dir /workspace/output/$TODAY \
-              --timeout 45m
+            cat "$prompt_file" | dsh --profile headless
           done
+
+          mkdir -p output/$TODAY
+          mv *.md output/$TODAY/ 2>/dev/null || true    # Předpokládáme, že agent vytvořil soubory v kořeni
 
       - name: Commit and push results
         run: |
