@@ -35,10 +35,10 @@ jobs:
               mode: ptc
           - id: compaction-basic
             config:
-              thresholdRatio: 0.4
-              headroomTokens: 512
-              retainTokens: 512
-              maxTokens: 512
+              thresholdRatio: 0.25
+              headroomTokens: 256
+              retainTokens: 256
+              maxTokens: 256
           - id: llm-pi-ai
             config:
               providers:
@@ -51,14 +51,15 @@ jobs:
                   retryPolicy:
                     mode: normal
                     maxRetries: 5
+                    retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, QUOTA, SERVER, TIMEOUT, TRANSPORT]
                     backoff:
                       initialDelayMs: 10000
                       maxDelayMs: 60000
                       jitterRatio: 0.2
                   models:
                     - id: qwen/qwen3.8-27b
-                      contextWindow: 7000
-                      maxTokens: 512
+                      contextWindow: 6000
+                      maxTokens: 256
                       compat:
                         supportsDeveloperRole: false
           EOF
