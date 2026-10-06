@@ -32,11 +32,11 @@ jobs:
               model: qwen/qwen3.8-27b
           - id: tools
             config:
-              mode: native
+              mode: ptc
           - id: compaction-basic
             config:
               thresholdRatio: 0.25
-              headroomTokens: 256
+              headroomTokens: 0
               retainTokens: 256
               maxTokens: 256
           - id: llm-pi-ai
