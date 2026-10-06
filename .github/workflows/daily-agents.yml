@@ -32,7 +32,7 @@ jobs:
               model: qwen/qwen3.8-27b
           - id: tools
             config:
-              mode: ptc
+              mode: minimal
           - id: compaction-basic
             config:
               thresholdRatio: 0.25
