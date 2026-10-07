@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
 import { createWriteStream } from 'node:fs'
+import { createRequire } from 'node:module'
 import { finished } from 'node:stream/promises'
 import { basename, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 export const name = 'monitor-ci-runner'
 export const inject = []
@@ -39,8 +41,12 @@ export function apply(ctx) {
 }
 
 async function run(ctx, ready) {
-  const { installModelSelection } = await import('@deepseek-ai/dsh-agent')
-  const { createUserMessage } = await import('@deepseek-ai/dsh-llm')
+  const entryPath = process.argv[1]
+  if (!entryPath) throw new Error('Cannot locate the running DSH entry point')
+  const runtimeRequire = createRequire(await realpath(entryPath))
+  const importRuntime = packageName => import(pathToFileURL(runtimeRequire.resolve(packageName)).href)
+  const { installModelSelection } = await importRuntime('@deepseek-ai/dsh-agent')
+  const { createUserMessage } = await importRuntime('@deepseek-ai/dsh-llm')
   await ctx.loader.await()
   for (const service of ['agents', 'agentPresets', 'sessions']) {
     if (!ctx.get(service)) throw new Error(`CI runner requires active DSH service: ${service}`)

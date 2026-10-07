@@ -5,8 +5,8 @@ import { join } from 'node:path'
 import test from 'node:test'
 
 const source = (await readFile(new URL('./ci-runner.mjs', import.meta.url), 'utf8'))
-  .replace("const { installModelSelection } = await import('@deepseek-ai/dsh-agent')", 'const installModelSelection = (ctx, value) => { ctx.selection = value }')
-  .replace("const { createUserMessage } = await import('@deepseek-ai/dsh-llm')", 'const createUserMessage = value => value')
+  .replace("const { installModelSelection } = await importRuntime('@deepseek-ai/dsh-agent')", 'const installModelSelection = (ctx, value) => { ctx.selection = value }')
+  .replace("const { createUserMessage } = await importRuntime('@deepseek-ai/dsh-llm')", 'const createUserMessage = value => value')
 const { apply } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`)
 
 for (const successful of [true, false]) {
