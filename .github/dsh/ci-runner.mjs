@@ -7,7 +7,7 @@ import { basename, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 export const name = 'monitor-ci-runner'
-export const inject = []
+export const inject = ['loader', 'agents', 'agentPresets', 'sessions']
 
 export function apply(ctx) {
   const exit = ctx.get('appExit')
