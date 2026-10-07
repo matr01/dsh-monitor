@@ -8,31 +8,29 @@ on:
 permissions:
   contents: write
 
+env:
+  DSH_HOME: /workspace/.dsh
+
 jobs:
   run-agents:
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
     container:
-      image: smanx/deepseek-harness:latest
+      image: smanx/deepseek-harness:devtools-min-latest
       options: --user root
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Minimal PTC plugin
+        run: dsh plugin --profile web add dsh-minimal-ptc
+
       - name: Configure DSH for Groq
         run: |
-          export DSH_HOME=/workspace/.dsh
           mkdir -p $DSH_HOME
           cat > $DSH_HOME/cordis.patch.yml << 'EOF'
-          - id: agent-default-model
-            config:
-              provider: groq
-              model: qwen/qwen3.8-27b
-          - id: tools
-            config:
-              mode: ptc
           - id: compaction-basic
             config:
               thresholdRatio: 0.25
@@ -51,14 +49,14 @@ jobs:
                   retryPolicy:
                     mode: normal
                     maxRetries: 5
-                    retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, QUOTA, SERVER, TIMEOUT, TRANSPORT]
+                    retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, QUOTA, PI_AI_ERROR, SERVER, TIMEOUT, TRANSPORT]
                     backoff:
                       initialDelayMs: 10000
                       maxDelayMs: 60000
                       jitterRatio: 0.2
                   models:
                     - id: qwen/qwen3.8-27b
-                      contextWindow: 4000
+                      contextWindow: 6000
                       maxTokens: 256
                       compat:
                         supportsDeveloperRole: false
@@ -66,14 +64,16 @@ jobs:
       
       - name: Run all monitor agents sequentially
         env:
-          DSH_HOME: /workspace/.dsh
+          DSH_AGENT_PRESET: ptc-minimal
+          DSH_CI_PROVIDER: groq
+          DSH_CI_MODEL: qwen/qwen3.8-27b
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           TODAY=$(date -u +%Y-%m-%d)
 
           for prompt_file in prompts/*.md; do
             echo "=== Spouštím: $prompt_file ==="
-            cat "$prompt_file" | dsh --profile headless
+            DSH_CI_PROMPT_FILE="$prompt_file" dsh --profile web --patch .github/dsh/ci.patch.yml --no-open
           done
 
           mkdir -p output/$TODAY
@@ -92,3 +92,11 @@ jobs:
           git add output/$TODAY/
           git diff --staged --quiet || git commit -m "Daily results $TODAY"
           git push
+
+      - name: Upload DSH logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dsh-logs
+          path: ${{ env.DSH_HOME }}/logs/
+          if-no-files-found: warn

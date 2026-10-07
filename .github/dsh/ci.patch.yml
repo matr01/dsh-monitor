@@ -1,0 +1,3 @@
+- insert:
+    - id: monitor-ci-runner
+      name: ./ci-runner.mjs
