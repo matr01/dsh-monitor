@@ -26,6 +26,12 @@ vytváří agenta s presetem `ptc-minimal` přes oficiální preset API; běžn�
 `DSH_CI_MODEL` a `DSH_CI_PROMPT_FILE` jsou vstupy našeho CI runneru,
 nikoli obecné přepínače DSH. Runner vyžaduje aktuální preset API DSH.
 
+CI runner se instaluje jako lokální bundle `dsh-monitor-ci` do stejného profilu
+jako Minimal PTC. Importy jádra probíhají uvnitř hlídaného startu: chyby se
+vypíšou do stderr a uloží do `logs/ci-startup-*.log`. Aktivace presetu má limit
+120 sekund; celý jeden monitor nejvýše 30 minut. Úspěšný start vypíše
+`dsh CI: active preset=ptc-minimal, provider=groq, model=qwen/qwen3.8-27b`.
+
 Kompakce má v presetu izolovanou službu. Runner před prvním úkolem nastaví
 její konfiguraci na stejný rozpočet jako home-level patch. Při změně DSH
 je třeba ověřit kompatibilitu tohoto konfiguračního rozhraní.

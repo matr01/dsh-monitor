@@ -1,25 +1,50 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createWriteStream } from 'node:fs'
 import { finished } from 'node:stream/promises'
 import { basename, join } from 'node:path'
-import { installModelSelection } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
 
 export const name = 'monitor-ci-runner'
-export const inject = ['agents', 'agentPresets', 'sessions']
+export const inject = []
 
 export function apply(ctx) {
   const exit = ctx.get('appExit')
   if (typeof exit !== 'function') throw new Error('CI runner requires appExit')
-  void run(ctx).then(() => exit(0), error => {
-    console.error(`dsh CI: ${error.stack ?? error}`)
+  let stopping = false
+  const fail = async error => {
+    if (stopping) return
+    stopping = true
+    clearTimeout(startupTimer)
+    const diagnostic = `dsh CI: ${error.stack ?? error}`
+    console.error(diagnostic)
+    try {
+      const logDirectory = join(process.env.DSH_HOME, 'logs')
+      await mkdir(logDirectory, { recursive: true })
+      await writeFile(join(logDirectory, `ci-startup-${randomUUID()}.log`), diagnostic, { mode: 0o600 })
+    } catch (logError) {
+      console.error(`dsh CI: cannot write diagnostic: ${logError.message}`)
+    }
     exit(1)
-  })
+  }
+  const startupTimer = setTimeout(() => {
+    void fail(new Error('CI runner did not activate its preset within 120 seconds'))
+  }, 120000)
+  console.error('dsh CI: runner loaded; checking runtime imports and preset')
+  void run(ctx, () => clearTimeout(startupTimer)).then(() => {
+    if (stopping) return
+    stopping = true
+    clearTimeout(startupTimer)
+    exit(0)
+  }, fail)
 }
 
-async function run(ctx) {
+async function run(ctx, ready) {
+  const { installModelSelection } = await import('@deepseek-ai/dsh-agent')
+  const { createUserMessage } = await import('@deepseek-ai/dsh-llm')
   await ctx.loader.await()
+  for (const service of ['agents', 'agentPresets', 'sessions']) {
+    if (!ctx.get(service)) throw new Error(`CI runner requires active DSH service: ${service}`)
+  }
   const presetId = process.env.DSH_AGENT_PRESET
   const promptFile = process.env.DSH_CI_PROMPT_FILE
   const provider = process.env.DSH_CI_PROVIDER
@@ -66,6 +91,7 @@ async function run(ctx) {
       modelPolicies: [],
     })
     console.error(`dsh CI: active preset=${presetId}, provider=${provider}, model=${model}`)
+    ready()
     await agent.whenIdle()
     agent.followup(createUserMessage({
       content: [{ type: 'text', text: task }],
