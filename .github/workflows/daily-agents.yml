@@ -36,7 +36,7 @@ jobs:
               thresholdRatio: 0.25
               headroomTokens: 0
               retainTokens: 256
-              maxTokens: 256
+              maxTokens: 1024
           - id: llm-pi-ai
             config:
               providers:
@@ -49,7 +49,7 @@ jobs:
                   retryPolicy:
                     mode: normal
                     maxRetries: 5
-                    retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, QUOTA, PI_AI_ERROR, SERVER, TIMEOUT, TRANSPORT]
+                    retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, QUOTA, SERVER, TIMEOUT, TRANSPORT]
                     backoff:
                       initialDelayMs: 10000
                       maxDelayMs: 60000
@@ -57,7 +57,7 @@ jobs:
                   models:
                     - id: qwen/qwen3.8-27b
                       contextWindow: 6000
-                      maxTokens: 256
+                      maxTokens: 2048
                       compat:
                         supportsDeveloperRole: false
           EOF
