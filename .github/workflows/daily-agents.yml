@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 180
 
     container:
-      image: smanx/deepseek-harness:devtools-min-latest
+      image: ghcr.io/smanx/deepseek-harness:devtools-min-latest
       options: --user root
 
     steps:
