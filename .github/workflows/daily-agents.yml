@@ -37,6 +37,12 @@ jobs:
               headroomTokens: 0
               retainTokens: 256
               maxTokens: 1024
+          - id: system-prompt
+            config:
+              personaSuffix: |
+                Start every run_code program with a 15-second delay:
+                `await new Promise(r => setTimeout(r, 15000))`.
+                This avoids provider rate limits.
           - id: llm-pi-ai
             config:
               providers:
@@ -51,7 +57,7 @@ jobs:
                     maxRetries: 5
                     retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, QUOTA, SERVER, TIMEOUT, TRANSPORT]
                     backoff:
-                      initialDelayMs: 10000
+                      initialDelayMs: 40000
                       maxDelayMs: 60000
                       jitterRatio: 0.2
                   models:
