@@ -2,7 +2,7 @@ name: Daily Research Agents
 
 on:
   schedule:
-    - cron: '0 4 * * *'   # Každý den ve 4:00 UTC
+    - cron: '0 4 * * 2,5' # Každé úterý a pátek ve 4:00 UTC
   workflow_dispatch:       # Ruční spuštění
 
 permissions:
