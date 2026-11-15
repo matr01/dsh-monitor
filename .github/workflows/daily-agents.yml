@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: '0 4 * * 2,5' # Každé úterý a pátek ve 4:00 UTC
   workflow_dispatch:       # Ruční spuštění
+    inputs:
+      provider:
+        description: LLM provider
+        type: choice
+        options: [gemini, groq]
+        default: gemini
+      model:
+        description: Model (prázdné = gemini-3.8-flash, resp. qwen/qwen3.8-27b pro groq)
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -27,7 +37,7 @@ jobs:
       - name: Install Minimal PTC plugin
         run: dsh plugin --profile web add dsh-minimal-ptc ./.github/dsh
 
-      - name: Configure DSH for Groq
+      - name: Configure DSH LLM providers
         run: |
           mkdir -p $DSH_HOME
           cat > $DSH_HOME/cordis.patch.yml << 'EOF'
@@ -43,9 +53,34 @@ jobs:
                 Start every run_code program with a 15-second delay:
                 `await new Promise(r => setTimeout(r, 15000))`.
                 This avoids provider rate limits.
+          # 429/503 opakuje CI runner (respektuje retry-after, max 3 pokusy);
+          # retryPolicy proto RATE_LIMIT, QUOTA ani SERVER znovu neopakuje.
           - id: llm-pi-ai
             config:
               providers:
+                gemini:
+                  api: openai-completions
+                  baseURL: https://generativelanguage.googleapis.com/v1beta/openai
+                  apiKeyEnv: GEMINI_API_KEY
+                  compat:
+                    supportsDeveloperRole: false
+                    supportsStore: false
+                  retryPolicy:
+                    mode: normal
+                    maxRetries: 2
+                    retryableCodes: [EMPTY_RESPONSE, TIMEOUT, TRANSPORT]
+                    backoff:
+                      initialDelayMs: 15000
+                      maxDelayMs: 60000
+                      jitterRatio: 0.2
+                  # contextWindow je záměrně pod free-tier limitem vstupních tokenů/min.
+                  models:
+                    - id: gemini-3.8-flash
+                      contextWindow: 250000
+                      maxTokens: 8192
+                    - id: gemini-3.5-flash-lite
+                      contextWindow: 250000
+                      maxTokens: 8192
                 groq:
                   api: openai-completions
                   baseURL: https://api.groq.com/openai/v1
@@ -54,8 +89,8 @@ jobs:
                     supportsDeveloperRole: false
                   retryPolicy:
                     mode: normal
-                    maxRetries: 5
-                    retryableCodes: [EMPTY_RESPONSE, RATE_LIMIT, QUOTA, SERVER, TIMEOUT, TRANSPORT]
+                    maxRetries: 2
+                    retryableCodes: [EMPTY_RESPONSE, TIMEOUT, TRANSPORT]
                     backoff:
                       initialDelayMs: 40000
                       maxDelayMs: 60000
@@ -71,8 +106,9 @@ jobs:
       - name: Run all monitor agents sequentially
         env:
           DSH_AGENT_PRESET: ptc-minimal
-          DSH_CI_PROVIDER: groq
-          DSH_CI_MODEL: qwen/qwen3.8-27b
+          DSH_CI_PROVIDER: ${{ inputs.provider || 'gemini' }}
+          DSH_CI_MODEL: ${{ inputs.model || (inputs.provider == 'groq' && 'qwen/qwen3.8-27b' || 'gemini-3.8-flash') }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           TODAY=$(date -u +%Y-%m-%d)
@@ -89,6 +125,14 @@ jobs:
             [ "$f" = "README.md" ] && continue
             mv "$f" output/$TODAY/
           done
+
+      - name: LLM request summary
+        if: always()
+        run: |
+          f="$DSH_HOME/llm-requests.tsv"
+          if [ ! -f "$f" ]; then echo "Celkem LLM požadavků: 0"; exit 0; fi
+          awk -F '\t' '{ printf "%s: %d LLM požadavků (z toho %d opakování)\n", $1, $2, $3; r += $2; t += $3 }
+            END { printf "Celkem LLM požadavků: %d (z toho %d opakování)\n", r, t }' "$f" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit and push results
         working-directory: ${{ github.workspace }}

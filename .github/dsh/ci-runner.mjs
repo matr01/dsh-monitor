@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
 import { createWriteStream } from 'node:fs'
 import { createRequire } from 'node:module'
 import { finished } from 'node:stream/promises'
@@ -9,9 +9,105 @@ import { pathToFileURL } from 'node:url'
 export const name = 'monitor-ci-runner'
 export const inject = ['loader', 'agents', 'agentPresets', 'sessions']
 
+const LLM_MAX_ATTEMPTS = 3
+const LLM_RETRY_STATUSES = new Set([429, 503])
+const LLM_BACKOFF_INITIAL_MS = 15000
+const LLM_MAX_DELAY_MS = 120000
+const LLM_JITTER_RATIO = 0.1
+
+/**
+ * Wrap fetch so OpenAI-compatible chat completion requests are counted and
+ * 429/503 responses are retried. The pi-ai adapter drops Retry-After, so DSH
+ * retryPolicy cannot honor it; the provider policies therefore must not retry
+ * RATE_LIMIT, QUOTA, or SERVER again.
+ */
+export function createLlmFetch(baseFetch, { sleep = abortableSleep, random = Math.random, log = console.error } = {}) {
+  const stats = { requests: 0, retries: 0 }
+  const fetch = async (input, init) => {
+    if (!isLlmRequest(input)) return baseFetch(input, init)
+    const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined)
+    for (let attempt = 1; ; attempt++) {
+      stats.requests++
+      const response = await baseFetch(input instanceof Request ? input.clone() : input, init)
+      if (!LLM_RETRY_STATUSES.has(response.status)) return response
+      const body = await response.text()
+      const delay = retryAfterMs(response.headers, body) ?? backoffMs(attempt, random)
+      if (attempt >= LLM_MAX_ATTEMPTS || delay > LLM_MAX_DELAY_MS) {
+        const headers = new Headers(response.headers)
+        headers.delete('content-encoding')
+        headers.delete('content-length')
+        return new Response(body, { status: response.status, statusText: response.statusText, headers })
+      }
+      log(`dsh CI: LLM HTTP ${response.status}, attempt ${attempt}/${LLM_MAX_ATTEMPTS}, retrying in ${Math.ceil(delay / 1000)}s`)
+      await sleep(delay, signal)
+      stats.retries++
+    }
+  }
+  return { fetch, stats }
+}
+
+function isLlmRequest(input) {
+  try {
+    return new URL(input instanceof Request ? input.url : String(input)).pathname.endsWith('/chat/completions')
+  } catch {
+    return false
+  }
+}
+
+function retryAfterMs(headers, body) {
+  const milliseconds = Number.parseFloat(headers.get('retry-after-ms') ?? '')
+  if (Number.isFinite(milliseconds) && milliseconds >= 0) return milliseconds
+  const retryAfter = headers.get('retry-after')?.trim()
+  if (retryAfter) {
+    const delay = /^\d+(?:\.\d+)?$/.test(retryAfter) ? Number(retryAfter) * 1000 : Date.parse(retryAfter) - Date.now()
+    if (Number.isFinite(delay)) return Math.max(0, delay)
+  }
+  // Gemini reports the wait as google.rpc.RetryInfo in the error body instead of a header.
+  const retryDelay = /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/.exec(body)?.[1]
+  return retryDelay === undefined ? undefined : Number(retryDelay) * 1000
+}
+
+function backoffMs(attempt, random) {
+  const exponential = Math.min(LLM_BACKOFF_INITIAL_MS * 2 ** (attempt - 1), LLM_MAX_DELAY_MS)
+  return exponential * (1 - LLM_JITTER_RATIO + 2 * LLM_JITTER_RATIO * random())
+}
+
+function abortableSleep(delay, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason)
+    const onAbort = () => {
+      clearTimeout(timer)
+      reject(signal.reason)
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, delay)
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
+async function reportLlmRequests({ requests, retries }) {
+  console.error(`dsh CI: LLM requests=${requests} (retries=${retries})`)
+  try {
+    const prompt = basename(process.env.DSH_CI_PROMPT_FILE ?? 'unknown')
+    await appendFile(join(process.env.DSH_HOME, 'llm-requests.tsv'), `${prompt}\t${requests}\t${retries}\n`)
+  } catch (error) {
+    console.error(`dsh CI: cannot record LLM request count: ${error.message}`)
+  }
+}
+
 export function apply(ctx) {
   const exit = ctx.get('appExit')
   if (typeof exit !== 'function') throw new Error('CI runner requires appExit')
+  const originalFetch = globalThis.fetch
+  const llm = createLlmFetch(originalFetch)
+  globalThis.fetch = llm.fetch
+  const stop = async code => {
+    if (globalThis.fetch === llm.fetch) globalThis.fetch = originalFetch
+    await reportLlmRequests(llm.stats)
+    exit(code)
+  }
   let stopping = false
   const fail = async error => {
     if (stopping) return
@@ -26,7 +122,7 @@ export function apply(ctx) {
     } catch (logError) {
       console.error(`dsh CI: cannot write diagnostic: ${logError.message}`)
     }
-    exit(1)
+    await stop(1)
   }
   const startupTimer = setTimeout(() => {
     void fail(new Error('CI runner did not activate its preset within 120 seconds'))
@@ -36,7 +132,7 @@ export function apply(ctx) {
     if (stopping) return
     stopping = true
     clearTimeout(startupTimer)
-    exit(0)
+    return stop(0)
   }, fail)
 }
 
