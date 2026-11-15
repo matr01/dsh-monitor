@@ -11,7 +11,9 @@ on:
         options: [google, groq]
         default: google
       model:
-        description: Model (prázdné = gemini-3.8-flash, resp. qwen/qwen3.8-27b pro groq)
+        description: >-
+          Google: gemini-3.5-flash-lite (výchozí), gemini-3.1-flash-lite, gemini-3.8-flash.
+          Groq: qwen/qwen3.8-27b (výchozí). Prázdné pole zvolí výchozí model providera.
         type: string
         required: false
 
@@ -44,7 +46,7 @@ jobs:
           - id: agent-default-model
             config:
               provider: google
-              model: gemini-3.8-flash
+              model: gemini-3.5-flash-lite
           - id: compaction-basic
             config:
               thresholdRatio: 0.25
@@ -81,6 +83,9 @@ jobs:
                     - id: gemini-3.5-flash-lite
                       contextWindow: 250000
                       maxTokens: 8192
+                    - id: gemini-3.1-flash-lite
+                      contextWindow: 250000
+                      maxTokens: 8192
                 groq:
                   api: openai-completions
                   baseURL: https://api.groq.com/openai/v1
@@ -107,7 +112,7 @@ jobs:
         env:
           DSH_AGENT_PRESET: ptc-minimal
           DSH_CI_PROVIDER: ${{ inputs.provider || 'google' }}
-          DSH_CI_MODEL: ${{ inputs.model || (inputs.provider == 'groq' && 'qwen/qwen3.8-27b' || 'gemini-3.8-flash') }}
+          DSH_CI_MODEL: ${{ inputs.model || (inputs.provider == 'groq' && 'qwen/qwen3.8-27b' || 'gemini-3.5-flash-lite') }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |

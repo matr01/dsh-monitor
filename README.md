@@ -30,7 +30,7 @@ CI runner se instaluje jako lokální bundle `dsh-monitor-ci` do stejného profi
 jako Minimal PTC. Importy jádra probíhají uvnitř hlídaného startu: chyby se
 vypíšou do stderr a uloží do `logs/ci-startup-*.log`. Aktivace presetu má limit
 120 sekund; celý jeden monitor nejvýše 30 minut. Úspěšný start vypíše
-`dsh CI: active preset=ptc-minimal, provider=google, model=gemini-3.8-flash`.
+`dsh CI: active preset=ptc-minimal, provider=google, model=gemini-3.5-flash-lite`.
 
 Kompakce má v presetu izolovanou službu. Runner před prvním úkolem nastaví
 její konfiguraci na stejný rozpočet jako home-level patch. Při změně DSH
@@ -48,7 +48,8 @@ Lokální test runneru bez modelových volání: `node --test .github/dsh/ci-run
 Výchozí provider je Google Gemini přes vestavěnou routu `google` v `llm-pi-ai`
 (nativní Gemini protokol; OpenAI-kompatibilní endpoint padal na chybějící
 `thought_signature`) s modelem
-`gemini-3.8-flash`; k dispozici je i `gemini-3.5-flash-lite`. Vyžaduje secret
+`gemini-3.5-flash-lite`; k dispozici jsou i `gemini-3.8-flash` a
+`gemini-3.1-flash-lite`. Vyžaduje secret
 `GEMINI_API_KEY`. Konfigurace routy nesmí uvádět `api` ani `baseURL`
 (`api: google-generative-ai` shodí celou skupinu providerů). Groq (`qwen/qwen3.8-27b`, secret `GROQ_API_KEY`) lze zvolit
 při ručním spuštění workflow vstupem `provider`; vstup `model` přepíše model.
