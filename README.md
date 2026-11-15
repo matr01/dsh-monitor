@@ -30,7 +30,7 @@ CI runner se instaluje jako lokální bundle `dsh-monitor-ci` do stejného profi
 jako Minimal PTC. Importy jádra probíhají uvnitř hlídaného startu: chyby se
 vypíšou do stderr a uloží do `logs/ci-startup-*.log`. Aktivace presetu má limit
 120 sekund; celý jeden monitor nejvýše 30 minut. Úspěšný start vypíše
-`dsh CI: active preset=ptc-minimal, provider=gemini, model=gemini-3.8-flash`.
+`dsh CI: active preset=ptc-minimal, provider=google, model=gemini-3.8-flash`.
 
 Kompakce má v presetu izolovanou službu. Runner před prvním úkolem nastaví
 její konfiguraci na stejný rozpočet jako home-level patch. Při změně DSH
@@ -45,14 +45,17 @@ Lokální test runneru bez modelových volání: `node --test .github/dsh/ci-run
 
 ## LLM provider
 
-Výchozí provider je Google Gemini (`gemini`) přes OpenAI-kompatibilní endpoint
-`https://generativelanguage.googleapis.com/v1beta/openai` s modelem
+Výchozí provider je Google Gemini přes vestavěnou routu `google` v `llm-pi-ai`
+(nativní Gemini protokol; OpenAI-kompatibilní endpoint padal na chybějící
+`thought_signature`) s modelem
 `gemini-3.8-flash`; k dispozici je i `gemini-3.5-flash-lite`. Vyžaduje secret
-`GEMINI_API_KEY`. Groq (`qwen/qwen3.8-27b`, secret `GROQ_API_KEY`) lze zvolit
+`GEMINI_API_KEY`. Konfigurace routy nesmí uvádět `api` ani `baseURL`
+(`api: google-generative-ai` shodí celou skupinu providerů). Groq (`qwen/qwen3.8-27b`, secret `GROQ_API_KEY`) lze zvolit
 při ručním spuštění workflow vstupem `provider`; vstup `model` přepíše model.
 
 Free limity Gemini jsou nízké (cca 5 požadavků/min, 20/den), proto monitory
-běží sekvenčně. CI runner obaluje `fetch` pro `/chat/completions`: odpovědi
+běží sekvenčně. CI runner obaluje `fetch` pro `/chat/completions` a Gemini
+`:generateContent`/`:streamGenerateContent`: odpovědi
 429 a 503 opakuje s exponenciálním backoffem (15 s, 30 s), přednostně podle
 `retry-after`/`retry-after-ms` nebo Gemini `retryDelay`, nejvýše 3 pokusy;
 delší požadované čekání než 120 s se neopakuje. Adaptér `llm-pi-ai` hodnotu

@@ -16,8 +16,9 @@ const LLM_MAX_DELAY_MS = 120000
 const LLM_JITTER_RATIO = 0.1
 
 /**
- * Wrap fetch so OpenAI-compatible chat completion requests are counted and
- * 429/503 responses are retried. The pi-ai adapter drops Retry-After, so DSH
+ * Wrap fetch so LLM requests (OpenAI-compatible chat completions and native
+ * Gemini generateContent) are counted and 429/503 responses are retried. The
+ * pi-ai adapter drops Retry-After, so DSH
  * retryPolicy cannot honor it; the provider policies therefore must not retry
  * RATE_LIMIT, QUOTA, or SERVER again.
  */
@@ -48,7 +49,8 @@ export function createLlmFetch(baseFetch, { sleep = abortableSleep, random = Mat
 
 function isLlmRequest(input) {
   try {
-    return new URL(input instanceof Request ? input.url : String(input)).pathname.endsWith('/chat/completions')
+    const { pathname } = new URL(input instanceof Request ? input.url : String(input))
+    return pathname.endsWith('/chat/completions') || /:(?:stream)?[Gg]enerateContent$/.test(pathname)
   } catch {
     return false
   }

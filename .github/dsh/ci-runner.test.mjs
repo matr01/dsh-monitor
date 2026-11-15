@@ -123,12 +123,13 @@ test('Startup deadline terminates an unsettled DSH loader', async context => {
 })
 
 const completionsUrl = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse'
 
 function scriptedFetch(responses) {
   return async () => responses.shift()()
 }
 
-test('LLM fetch honors Retry-After and Gemini retryDelay, counting only chat completions', async () => {
+test('LLM fetch honors Retry-After and Gemini retryDelay, counting only LLM requests', async () => {
   const delays = []
   const upstream = scriptedFetch([
     () => new Response('{}', { status: 429, headers: { 'retry-after': '7' } }),
@@ -137,7 +138,7 @@ test('LLM fetch honors Retry-After and Gemini retryDelay, counting only chat com
     () => new Response('page'),
   ])
   const llm = createLlmFetch(upstream, { sleep: async delay => { delays.push(delay) }, log: () => {} })
-  const response = await llm.fetch(completionsUrl, { method: 'POST', body: '{}' })
+  const response = await llm.fetch(geminiUrl, { method: 'POST', body: '{}' })
   assert.equal(await response.text(), 'ok')
   assert.equal(await (await llm.fetch('https://example.com/news')).text(), 'page')
   assert.deepEqual(delays, [7000, 37000])

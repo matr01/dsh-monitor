@@ -8,8 +8,8 @@ on:
       provider:
         description: LLM provider
         type: choice
-        options: [gemini, groq]
-        default: gemini
+        options: [google, groq]
+        default: google
       model:
         description: Model (prázdné = gemini-3.8-flash, resp. qwen/qwen3.8-27b pro groq)
         type: string
@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 180
 
     container:
-      image: ghcr.io/smanx/deepseek-harness:devtools-min-latest
+      image: ghcr.io/smanx/deepseek-harness:devtools-min-0.2.2-rc.3
       options: --user root
 
     steps:
@@ -41,6 +41,10 @@ jobs:
         run: |
           mkdir -p $DSH_HOME
           cat > $DSH_HOME/cordis.patch.yml << 'EOF'
+          - id: agent-default-model
+            config:
+              provider: google
+              model: gemini-3.8-flash
           - id: compaction-basic
             config:
               thresholdRatio: 0.25
@@ -58,13 +62,9 @@ jobs:
           - id: llm-pi-ai
             config:
               providers:
-                gemini:
-                  api: openai-completions
-                  baseURL: https://generativelanguage.googleapis.com/v1beta/openai
+                # Vestavěná routa (nativní Gemini protokol); bez `api`/`baseURL`.
+                google:
                   apiKeyEnv: GEMINI_API_KEY
-                  compat:
-                    supportsDeveloperRole: false
-                    supportsStore: false
                   retryPolicy:
                     mode: normal
                     maxRetries: 2
@@ -106,7 +106,7 @@ jobs:
       - name: Run all monitor agents sequentially
         env:
           DSH_AGENT_PRESET: ptc-minimal
-          DSH_CI_PROVIDER: ${{ inputs.provider || 'gemini' }}
+          DSH_CI_PROVIDER: ${{ inputs.provider || 'google' }}
           DSH_CI_MODEL: ${{ inputs.model || (inputs.provider == 'groq' && 'qwen/qwen3.8-27b' || 'gemini-3.8-flash') }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
