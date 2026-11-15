@@ -9,11 +9,15 @@ Projdi zdroje jako:
 
 A udělej přehled hlavních globálních zpráv.
 
-Klíčové události rozveď stručně a věcně, okrajovější (ale stále relevantní) zmiň pouze heslovitě v jedné řádce, bez odstavců.
+Klíčové události rozveď stručně a věcně, okrajovější (ale stále relevantní)
+zmiň pouze heslovitě v jedné řádce, bez odstavců.
+Do nadpisu dej i datum (včetně dne v týdnu).
 Ulož jako `02-zpravy.md`.
 
 -----
 Kromě tohoto shrnutí udělej ve výstupu ještě druhou sekci "Pozice zdrojů",
-v níž zhodnotíš, jaké zdroje (z geopolitického hlediska - západní apod.) se zaměřují na co a v čem se případně pohledy jednotlivých zdrojů liší.
-Cílem je získat plastičtější přehled, kde kromě toho, co se říká, budeme vědět
-i kdo to říká a případně za jakým účelem.
+kde stručně zhodnotíš, jaké zdroje (z geopolitického hlediska - západní apod.)
+v popisu daných aktuálních událostí kde stojí a v čem se případně pohledy
+jednotlivých zdrojů liší.
+(Čili ne obecně popis dlouhodobých pozic těch médií, ale popis pozic pro
+to konkrétní popisované dění.)
