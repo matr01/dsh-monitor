@@ -1,7 +1,15 @@
-# Testovací monitor
+# Testovací monitor počasí
 
 Zjisti počasí pro dnešní den ve Vlašimi.
 
-Výstup stačí jen stručný: datum a základní charakteristiky očekávaného počasí.
+Výstup stačí jen stručný:
+- datum (v českém formátu, včetně dne v týdnu)
+- základní charakteristiky očekávaného počasí
+  - teplota (rozsah pro celý den, ne jen aktuální)
+  - oblačnost
+  - vítr
+  - srážky (pokud se čekají)
+  - východ/západ slunce
+- zdroj
 
 Ulož jako `01-test-pocasi.md`.
