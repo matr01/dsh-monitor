@@ -42,7 +42,8 @@ zvolit `gemini-3.1-flash-lite` nebo `gemini-3.8-flash`.
 
 Free limity Gemini jsou nízké (např. 15 požadavků/min pro `gemini-3.5-flash-lite`),
 proto monitory běží sekvenčně a `retryPolicy` opakuje i `RATE_LIMIT` a `QUOTA`
-(DSH tak hlásí Gemini 429 `RESOURCE_EXHAUSTED`) s delším backoffem (20 s, 40 s, 60 s).
+(DSH tak hlásí Gemini 429 `RESOURCE_EXHAUSTED`) a `SERVER` (503 při přetížení modelu),
+nejvýše 5× s backoffem 30 s, 60 s, 120 s, 120 s, 120 s (celkem ~7,5 min).
 
 Starší varianta s providery Groq a Z.ai (vlastní CI runner s presetem `ptc-minimal`)
 je zachována ve větvi `multi-provider` a spouští se jen ručně.
