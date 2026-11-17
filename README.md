@@ -40,8 +40,9 @@ celou skupinu providerů). Vyžaduje secret `GEMINI_API_KEY`.
 Výchozí model je `gemini-3.5-flash-lite`; při ručním spuštění lze vstupem `model`
 zvolit `gemini-3.1-flash-lite` nebo `gemini-3.8-flash`.
 
-Free limity Gemini jsou nízké (cca 5 požadavků/min, 20/den), proto monitory běží
-sekvenčně a `retryPolicy` opakuje i `RATE_LIMIT` s delším backoffem (20 s, 40 s, 60 s).
+Free limity Gemini jsou nízké (např. 15 požadavků/min pro `gemini-3.5-flash-lite`),
+proto monitory běží sekvenčně a `retryPolicy` opakuje i `RATE_LIMIT` a `QUOTA`
+(DSH tak hlásí Gemini 429 `RESOURCE_EXHAUSTED`) s delším backoffem (20 s, 40 s, 60 s).
 
 Starší varianta s providery Groq a Z.ai (vlastní CI runner s presetem `ptc-minimal`)
 je zachována ve větvi `multi-provider` a spouští se jen ručně.

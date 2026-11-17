@@ -68,11 +68,12 @@ jobs:
                 # Vestavěná routa (nativní Gemini protokol); bez api/baseURL.
                 google:
                   apiKeyEnv: GEMINI_API_KEY
-                  # Free tier Gemini má cca 5 požadavků/min, proto delší backoff.
+                  # Free tier Gemini má limit požadavků/min; jeho překročení (429
+                  # RESOURCE_EXHAUSTED) DSH hlásí jako QUOTA, proto se opakuje i QUOTA.
                   retryPolicy:
                     mode: normal
                     maxRetries: 3
-                    retryableCodes: [RATE_LIMIT, SERVER, EMPTY_RESPONSE, TIMEOUT, TRANSPORT]
+                    retryableCodes: [RATE_LIMIT, QUOTA, SERVER, EMPTY_RESPONSE, TIMEOUT, TRANSPORT]
                     backoff:
                       initialDelayMs: 20000
                       maxDelayMs: 60000
