@@ -4,7 +4,9 @@ DeepSeek Harness pro monitorování informací na internetu.
 
 Agenti jsou spouštěni denně pomocí GitHub Actions (cron). Každý agent je definován
 v samostatném prompt souboru ve složce `prompts/`. Výsledky se ukládají do složky
-`output/<datum>/` a jsou automaticky commitovány zpět do repozitáře.
+`output/<datum>/` a jsou automaticky commitovány zpět do repozitáře. Při ručním
+spuštění lze vstupem `suffix` zvolit jinou složku (např. `b` → `output/<datum>-b/`),
+aby se nepřepsaly výsledky dřívějšího běhu ze stejného dne.
 
 ## Struktura
 

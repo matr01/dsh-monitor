@@ -17,6 +17,13 @@ on:
           Z.ai: glm-4.7-flash (výchozí), glm-4.5-flash. Prázdné pole zvolí výchozí model providera.
         type: string
         required: false
+      suffix:
+        description: >-
+          Přípona výstupní složky, např. "b" → output/YYYY-MM-DD-b. Povolené znaky A-Z a-z 0-9 . _ -
+          Prázdné pole zapisuje do output/YYYY-MM-DD.
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -34,6 +41,19 @@ jobs:
       options: --user root
 
     steps:
+      - name: Resolve output directory
+        env:
+          OUTPUT_SUFFIX: ${{ inputs.suffix }}
+        run: |
+          suffix="${OUTPUT_SUFFIX#-}"
+          if [ -n "$suffix" ] && ! printf '%s' "$suffix" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+            echo "::error::Neplatný suffix '$OUTPUT_SUFFIX' (povolené znaky A-Z a-z 0-9 . _ -)"
+            exit 1
+          fi
+          OUTPUT_DIR="output/$(date -u +%Y-%m-%d)${suffix:+-$suffix}"
+          echo "OUTPUT_DIR=$OUTPUT_DIR" >> "$GITHUB_ENV"
+          echo "Výstupní složka: $OUTPUT_DIR"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -143,19 +163,17 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: |
-          TODAY=$(date -u +%Y-%m-%d)
-
           for prompt_file in prompts/*.md; do
             echo "=== Spouštím: $prompt_file ==="
             DSH_CI_PROMPT_FILE="$prompt_file" timeout --signal=TERM --kill-after=15s 30m dsh --profile web --no-open
           done
 
-          mkdir -p output/$TODAY
+          mkdir -p "$OUTPUT_DIR"
           # Předpokládáme, že agent vytvořil soubory v kořeni
           for f in *.md; do
             [ -f "$f" ] || continue
             [ "$f" = "README.md" ] && continue
-            mv "$f" output/$TODAY/
+            mv "$f" "$OUTPUT_DIR/"
           done
 
       - name: LLM request summary
@@ -169,13 +187,12 @@ jobs:
       - name: Commit and push results
         working-directory: ${{ github.workspace }}
         run: |
-          TODAY=$(date -u +%Y-%m-%d)
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git rev-parse --show-toplevel
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/$TODAY/
-          git diff --staged --quiet || git commit -m "Daily results $TODAY"
+          git add "$OUTPUT_DIR/"
+          git diff --staged --quiet || git commit -m "Daily results ${OUTPUT_DIR#output/}"
           git push
 
       - name: Upload DSH logs
