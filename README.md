@@ -51,7 +51,9 @@ Výchozí provider je Google Gemini přes vestavěnou routu `google` v `llm-pi-a
 `gemini-3.5-flash-lite`; k dispozici jsou i `gemini-3.8-flash` a
 `gemini-3.1-flash-lite`. Vyžaduje secret
 `GEMINI_API_KEY`. Konfigurace routy nesmí uvádět `api` ani `baseURL`
-(`api: google-generative-ai` shodí celou skupinu providerů). Groq (`qwen/qwen3.8-27b`, secret `GROQ_API_KEY`) lze zvolit
+(`api: google-generative-ai` shodí celou skupinu providerů). Groq (`qwen/qwen3.8-27b`, secret `GROQ_API_KEY`)
+a Z.ai (OpenAI-kompatibilní `https://api.z.ai/api/paas/v4`, bezplatné `glm-4.7-flash`
+jako výchozí nebo `glm-4.5-flash`, secret `ZAI_API_KEY`) lze zvolit
 při ručním spuštění workflow vstupem `provider`; vstup `model` přepíše model.
 
 Free limity Gemini jsou nízké (cca 5 požadavků/min, 20/den), proto monitory

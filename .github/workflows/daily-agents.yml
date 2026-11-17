@@ -8,12 +8,13 @@ on:
       provider:
         description: LLM provider
         type: choice
-        options: [google, groq]
+        options: [google, groq, zai]
         default: google
       model:
         description: >-
           Google: gemini-3.5-flash-lite (výchozí), gemini-3.1-flash-lite, gemini-3.8-flash.
-          Groq: qwen/qwen3.8-27b (výchozí). Prázdné pole zvolí výchozí model providera.
+          Groq: qwen/qwen3.8-27b (výchozí).
+          Z.ai: glm-4.7-flash (výchozí), glm-4.5-flash. Prázdné pole zvolí výchozí model providera.
         type: string
         required: false
 
@@ -106,15 +107,41 @@ jobs:
                       maxTokens: 2048
                       compat:
                         supportsDeveloperRole: false
+                zai:
+                  api: openai-completions
+                  baseURL: https://api.z.ai/api/paas/v4
+                  apiKeyEnv: ZAI_API_KEY
+                  compat:
+                    supportsDeveloperRole: false
+                  retryPolicy:
+                    mode: normal
+                    maxRetries: 2
+                    retryableCodes: [EMPTY_RESPONSE, TIMEOUT, TRANSPORT]
+                    backoff:
+                      initialDelayMs: 15000
+                      maxDelayMs: 60000
+                      jitterRatio: 0.2
+                  models:
+                    - id: glm-4.7-flash
+                      contextWindow: 200000
+                      maxTokens: 8192
+                      compat:
+                        supportsDeveloperRole: false
+                    - id: glm-4.5-flash
+                      contextWindow: 128000
+                      maxTokens: 8192
+                      compat:
+                        supportsDeveloperRole: false
           EOF
       
       - name: Run all monitor agents sequentially
         env:
           DSH_AGENT_PRESET: ptc-minimal
           DSH_CI_PROVIDER: ${{ inputs.provider || 'google' }}
-          DSH_CI_MODEL: ${{ inputs.model || (inputs.provider == 'groq' && 'qwen/qwen3.8-27b' || 'gemini-3.5-flash-lite') }}
+          DSH_CI_MODEL: ${{ inputs.model || (inputs.provider == 'groq' && 'qwen/qwen3.8-27b' || (inputs.provider == 'zai' && 'glm-4.7-flash' || 'gemini-3.5-flash-lite')) }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: |
           TODAY=$(date -u +%Y-%m-%d)
 
