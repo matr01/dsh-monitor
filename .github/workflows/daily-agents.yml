@@ -35,6 +35,8 @@ jobs:
   run-agents:
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    env:
+      DSH_CI_PROVIDER: ${{ inputs.provider || 'google' }}
 
     container:
       image: ghcr.io/smanx/deepseek-harness:devtools-min-0.2.2-rc.3
@@ -68,6 +70,10 @@ jobs:
             config:
               provider: google
               model: gemini-3.5-flash-lite
+          # LLM titulek se generuje souběžně s prvním krokem agenta (zbytečný
+          # paralelní požadavek); zůstává jen titulek z prvních slov promptu.
+          - id: session-title-llm
+            disabled: true
           - id: compaction-basic
             config:
               thresholdRatio: 0.25
@@ -80,7 +86,18 @@ jobs:
                 Start every run_code program with a 15-second delay:
                 `await new Promise(r => setTimeout(r, 15000))`.
                 This avoids provider rate limits.
-          # 429/503 opakuje CI runner (respektuje retry-after, max 3 pokusy);
+          EOF
+          # Z.ai nesnáší souběžné požadavky: zákaz subagentů a paralelních volání.
+          if [ "$DSH_CI_PROVIDER" = "zai" ]; then
+            cat >> $DSH_HOME/cordis.patch.yml << 'EOF'
+                Do not use subagent, subagent_fork, workflow, ralph or any other tool
+                that starts another agent; do all work yourself in this session.
+                Run tool calls strictly one after another with `await`; never use
+                `Promise.all` or any other concurrent calls.
+          EOF
+          fi
+          cat >> $DSH_HOME/cordis.patch.yml << 'EOF'
+          # 429/503 opakuje CI runner (respektuje retry-after, max 3 pokusy, Z.ai 6);
           # retryPolicy proto RATE_LIMIT, QUOTA ani SERVER znovu neopakuje.
           - id: llm-pi-ai
             config:
@@ -157,7 +174,6 @@ jobs:
       - name: Run all monitor agents sequentially
         env:
           DSH_AGENT_PRESET: ptc-minimal
-          DSH_CI_PROVIDER: ${{ inputs.provider || 'google' }}
           DSH_CI_MODEL: ${{ inputs.model || (inputs.provider == 'groq' && 'qwen/qwen3.8-27b' || (inputs.provider == 'zai' && 'glm-4.7-flash' || 'gemini-3.5-flash-lite')) }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

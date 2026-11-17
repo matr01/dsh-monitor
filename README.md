@@ -63,7 +63,12 @@ běží sekvenčně. CI runner obaluje `fetch` pro `/chat/completions` a Gemini
 `:generateContent`/`:streamGenerateContent`: odpovědi
 429 a 503 opakuje s exponenciálním backoffem (15 s, 30 s), přednostně podle
 `retry-after`/`retry-after-ms` nebo Gemini `retryDelay`, nejvýše 3 pokusy;
-delší požadované čekání než 120 s se neopakuje. Adaptér `llm-pi-ai` hodnotu
+delší požadované čekání než 120 s se neopakuje. Pro Z.ai (`api.z.ai`, který
+vrací 429 „temporarily overloaded“ i bez souběhu) platí nejvýše 6 pokusů
+s backoffem 30 s, 60 s, 120 s, 180 s, 180 s a limitem čekání 180 s. Požadavky
+na Z.ai runner navíc pouští jen po jednom (další čeká, dokud předchozí včetně
+opakování a streamované odpovědi neskončí) a systémový prompt agentovi zakazuje
+subagenty a souběžná volání nástrojů. Adaptér `llm-pi-ai` hodnotu
 `retry-after` do DSH `retryPolicy` nepředává, proto `retryPolicy` kódy
 `RATE_LIMIT`, `QUOTA` a `SERVER` znovu neopakuje (pokusy by se násobily).
 Každý monitor vypíše `dsh CI: LLM requests=N (retries=M)` a zapíše počet do

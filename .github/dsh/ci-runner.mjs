@@ -9,11 +9,15 @@ import { pathToFileURL } from 'node:url'
 export const name = 'monitor-ci-runner'
 export const inject = ['loader', 'agents', 'agentPresets', 'sessions']
 
-const LLM_MAX_ATTEMPTS = 3
 const LLM_RETRY_STATUSES = new Set([429, 503])
-const LLM_BACKOFF_INITIAL_MS = 15000
-const LLM_MAX_DELAY_MS = 120000
 const LLM_JITTER_RATIO = 0.1
+const LLM_DEFAULT_RETRY = { maxAttempts: 3, backoffInitialMs: 15000, maxDelayMs: 120000 }
+// Z.ai free models answer 429 code 1305 ("temporarily overloaded") even without
+// concurrency, so its requests get more and longer-spaced attempts, and only one
+// request (including its retries and streamed body) is in flight at a time.
+const LLM_HOST_RETRY = new Map([
+  ['api.z.ai', { maxAttempts: 6, backoffInitialMs: 30000, maxDelayMs: 180000, serialize: true }],
+])
 
 /**
  * Wrap fetch so LLM requests (OpenAI-compatible chat completions and native
@@ -24,22 +28,38 @@ const LLM_JITTER_RATIO = 0.1
  */
 export function createLlmFetch(baseFetch, { sleep = abortableSleep, random = Math.random, log = console.error } = {}) {
   const stats = { requests: 0, retries: 0 }
+  const locks = new Map()
   const fetch = async (input, init) => {
-    if (!isLlmRequest(input)) return baseFetch(input, init)
+    const url = llmRequestUrl(input)
+    if (!url) return baseFetch(input, init)
+    const policy = LLM_HOST_RETRY.get(url.hostname) ?? LLM_DEFAULT_RETRY
+    let release
+    if (policy.serialize) {
+      if (!locks.has(url.hostname)) locks.set(url.hostname, createMutex())
+      release = await locks.get(url.hostname)()
+    }
+    try {
+      return releaseAfterBody(await fetchWithRetry(input, init, policy), release)
+    } catch (error) {
+      release?.()
+      throw error
+    }
+  }
+  const fetchWithRetry = async (input, init, policy) => {
     const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined)
     for (let attempt = 1; ; attempt++) {
       stats.requests++
       const response = await baseFetch(input instanceof Request ? input.clone() : input, init)
       if (!LLM_RETRY_STATUSES.has(response.status)) return response
       const body = await response.text()
-      const delay = retryAfterMs(response.headers, body) ?? backoffMs(attempt, random)
-      if (attempt >= LLM_MAX_ATTEMPTS || delay > LLM_MAX_DELAY_MS) {
+      const delay = retryAfterMs(response.headers, body) ?? backoffMs(attempt, policy, random)
+      if (attempt >= policy.maxAttempts || delay > policy.maxDelayMs) {
         const headers = new Headers(response.headers)
         headers.delete('content-encoding')
         headers.delete('content-length')
         return new Response(body, { status: response.status, statusText: response.statusText, headers })
       }
-      log(`dsh CI: LLM HTTP ${response.status}, attempt ${attempt}/${LLM_MAX_ATTEMPTS}, retrying in ${Math.ceil(delay / 1000)}s`)
+      log(`dsh CI: LLM HTTP ${response.status}, attempt ${attempt}/${policy.maxAttempts}, retrying in ${Math.ceil(delay / 1000)}s`)
       await sleep(delay, signal)
       stats.retries++
     }
@@ -47,12 +67,63 @@ export function createLlmFetch(baseFetch, { sleep = abortableSleep, random = Mat
   return { fetch, stats }
 }
 
-function isLlmRequest(input) {
+function createMutex() {
+  let tail = Promise.resolve()
+  return async () => {
+    const previous = tail
+    let unlock
+    tail = new Promise(resolve => { unlock = resolve })
+    await previous
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      unlock()
+    }
+  }
+}
+
+// Keeps the lock until the (possibly streamed) body is fully read, fails, or is cancelled.
+function releaseAfterBody(response, release) {
+  if (!release) return response
+  if (!response.body) {
+    release()
+    return response
+  }
+  const reader = response.body.getReader()
+  const body = new ReadableStream({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read()
+        if (done) {
+          release()
+          controller.close()
+        } else {
+          controller.enqueue(value)
+        }
+      } catch (error) {
+        release()
+        controller.error(error)
+      }
+    },
+    cancel(reason) {
+      release()
+      return reader.cancel(reason)
+    },
+  })
+  const headers = new Headers(response.headers)
+  headers.delete('content-encoding')
+  headers.delete('content-length')
+  return new Response(body, { status: response.status, statusText: response.statusText, headers })
+}
+
+function llmRequestUrl(input) {
   try {
-    const { pathname } = new URL(input instanceof Request ? input.url : String(input))
-    return pathname.endsWith('/chat/completions') || /:(?:stream)?[Gg]enerateContent$/.test(pathname)
+    const url = new URL(input instanceof Request ? input.url : String(input))
+    const { pathname } = url
+    return pathname.endsWith('/chat/completions') || /:(?:stream)?[Gg]enerateContent$/.test(pathname) ? url : undefined
   } catch {
-    return false
+    return undefined
   }
 }
 
@@ -69,8 +140,8 @@ function retryAfterMs(headers, body) {
   return retryDelay === undefined ? undefined : Number(retryDelay) * 1000
 }
 
-function backoffMs(attempt, random) {
-  const exponential = Math.min(LLM_BACKOFF_INITIAL_MS * 2 ** (attempt - 1), LLM_MAX_DELAY_MS)
+function backoffMs(attempt, { backoffInitialMs, maxDelayMs }, random) {
+  const exponential = Math.min(backoffInitialMs * 2 ** (attempt - 1), maxDelayMs)
   return exponential * (1 - LLM_JITTER_RATIO + 2 * LLM_JITTER_RATIO * random())
 }
 
