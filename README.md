@@ -20,6 +20,24 @@ bez volání modelu. Pro nové vygenerování použijte jiný `suffix`.
 - `output/` – výsledky běhů, členěné podle data, sady a případné přípony
 - `.github/workflows/daily-agents.yml` – workflow, které agenty spouští
 
+## Vícekrokový monitoring levice
+
+Sada `experimental` spouští v pořadí názvů souborů čtyři samostatné kroky:
+
+1. `01-levice-cesko.md` – rešerše české scény.
+2. `02-levice-evropa.md` – rešerše evropské scény.
+3. `03-levice-svet.md` – rešerše mimoevropské scény.
+4. `04-levice.md` – syntéza tří podkladů do původního formátu monitoringu,
+   bez dalšího vyhledávání na internetu.
+
+Každý krok má vlastní session DSH. Workflow předává promptům cestu k výstupní
+složce aktuálního běhu a rozhodné datum v UTC odvozené z jejího názvu.
+Všechny tři rešerše tak používají stejné čtyřdenní období včetně tohoto data.
+Podklady se ukládají stejně jako výsledný dokument; při selhání pozdějšího kroku
+zůstávají zachované a opakovaný běh je při stejné cílové složce přeskočí.
+Syntéza čte pouze podklady z aktuální výstupní složky, nikoli z jiných běhů;
+chybějící, prázdné nebo časově nesouhlasící podklady má hlásit jako chybu.
+
 ## Jak přidat nový monitor
 
 Stačí do složky `prompts/<sada>/` přidat nový `.md` soubor s popisem úkolu.
@@ -39,6 +57,11 @@ Workflow běží v kontejneru `ghcr.io/smanx/deepseek-harness` a každý prompt 
 zvlášť jako `dsh --profile headless "<prompt>"` (sekvenčně, nejvýše 30 minut na monitor).
 Nenulový exit kód (úkol neskončil `completed`) shodí běh. Konfigurace DSH se generuje
 do `$DSH_HOME/cordis.patch.yml` přímo ve workflow.
+Timeout nečinnosti streamu poskytovatele je nastaven pomocí
+`llm-pi-ai.providers.google.streamIdleTimeoutMs` na 600 000 ms (10 minut)
+místo výchozích 300 000 ms. Jde o čekání na další data streamu, nikoli o celkovou
+dobu kroku. Workflow nepřidává nový pokus celého procesu DSH při timeoutu;
+pokud proces skončí chybou, běh selže a zachová již dokončené kroky.
 
 Po každém úspěšném promptu se ověří neprázdný výstup a ihned se přesune do cílové
 složky. Chybějící nebo prázdný výstup způsobí chybu. Dokončené výsledky se commitují
