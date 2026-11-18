@@ -38,7 +38,13 @@ Konfigurace routy nesmí uvádět `api` ani `baseURL` (`api: google-generative-a
 celou skupinu providerů). Vyžaduje secret `GEMINI_API_KEY`.
 
 Výchozí model je `gemini-3.5-flash-lite`; při ručním spuštění lze vstupem `model`
-zvolit `gemini-3.1-flash-lite` nebo `gemini-3.8-flash`.
+zvolit také `gemini-3.1-flash-lite`, `gemini-3.8-flash`, `gemini-3-flash-preview`,
+`gemini-3.6-flash` nebo `gemini-4-hydrogen`.
+
+Modely `gemini-3-flash-preview`, `gemini-3.6-flash` a `gemini-4-hydrogen` mají
+free limity 5 požadavků/min (RPM), 250 000 vstupních tokenů/min (TPM) a 20
+požadavků/den (RPD). Limity vynucuje poskytovatel, workflow je samo nehlídá;
+`contextWindow` není limit spotřeby za minutu.
 
 Free limity Gemini jsou nízké (např. 15 požadavků/min pro `gemini-3.5-flash-lite`),
 proto monitory běží sekvenčně a `retryPolicy` opakuje i `RATE_LIMIT` a `QUOTA`
