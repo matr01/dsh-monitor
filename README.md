@@ -10,6 +10,8 @@ ostatních sad do `output/<datum>-<sada>/`, a jsou automaticky commitovány zpě
 repozitáře. Při ručním spuštění lze vstupem `suffix` přidat příponu (např. `b` →
 `output/<datum>-b/` nebo `output/<datum>-experimental-b/`),
 aby se nepřepsaly výsledky dřívějšího běhu stejné sady ze stejného dne.
+Pokud už v cílové složce existuje neprázdný výstup promptu, workflow ho přeskočí
+bez volání modelu. Pro nové vygenerování použijte jiný `suffix`.
 
 ## Struktura
 
@@ -24,6 +26,8 @@ Stačí do složky `prompts/<sada>/` přidat nový `.md` soubor s popisem úkolu
 Workflow ho při dalším běhu dané sady automaticky zařadí a spustí. Spouští pouze
 `.md` soubory přímo ve vybrané složce, nikoli v jejích podsložkách. Neexistující
 nebo prázdná sada způsobí chybu běhu.
+Prompt musí uložit výstup do kořene repozitáře jako neprázdný soubor se stejným
+názvem, jaký má soubor promptu (např. `01-test-pocasi.md`).
 
 Novou sadu vytvořte jako složku pod `prompts/` a přidejte její název do
 `workflow_dispatch.inputs.prompt_set.options` ve workflow. Název může obsahovat
@@ -35,6 +39,13 @@ Workflow běží v kontejneru `ghcr.io/smanx/deepseek-harness` a každý prompt 
 zvlášť jako `dsh --profile headless "<prompt>"` (sekvenčně, nejvýše 30 minut na monitor).
 Nenulový exit kód (úkol neskončil `completed`) shodí běh. Konfigurace DSH se generuje
 do `$DSH_HOME/cordis.patch.yml` přímo ve workflow.
+
+Po každém úspěšném promptu se ověří neprázdný výstup a ihned se přesune do cílové
+složky. Chybějící nebo prázdný výstup způsobí chybu. Dokončené výsledky se commitují
+a pushují i při selhání dalšího promptu; výstup chybujícího promptu se neukládá.
+Opakovaný běh načte aktuální stav větve, takže při stejném `OUTPUT_DIR` dokončené
+prompty neopakuje. Datum složky se počítá v UTC při spuštění, proto běh v jiný den
+použije jinou složku.
 
 Artefakt `dsh-logs` se nahrává i při selhání a obsahuje logy DSH a session
 jednotlivých monitorů (`$DSH_HOME/logs`, `$DSH_HOME/sessions`). Mohou obsahovat

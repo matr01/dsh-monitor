@@ -49,6 +49,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Re-run musí načíst i výsledky commitované předchozím pokusem.
+          ref: ${{ github.ref }}
 
       - name: Resolve prompt set and output directory
         env:
@@ -135,25 +138,33 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          mkdir -p "$OUTPUT_DIR"
           for prompt_file in "$PROMPT_DIR"/*.md; do
             if [ ! -f "$prompt_file" ]; then
               echo "::error::Chybí soubor promptu: $prompt_file (sada musí obsahovat .md prompty)"
               exit 1
             fi
+            output_file="${prompt_file##*/}"
+            if [ -s "$OUTPUT_DIR/$output_file" ]; then
+              echo "=== Přeskakuji hotový prompt: $prompt_file ==="
+              continue
+            fi
             echo "=== Spouštím: $prompt_file ==="
             timeout --signal=TERM --kill-after=15s 30m dsh --profile headless "$(cat "$prompt_file")"
-          done
-
-          mkdir -p "$OUTPUT_DIR"
-          # Agent ukládá výsledky do kořene repozitáře.
-          for f in *.md; do
-            [ -f "$f" ] || continue
-            [ "$f" = "README.md" ] && continue
-            mv "$f" "$OUTPUT_DIR/"
+            if [ ! -s "$output_file" ]; then
+              echo "::error::Prompt '$prompt_file' nevytvořil neprázdný výstup '$output_file'"
+              exit 1
+            fi
+            mv "$output_file" "$OUTPUT_DIR/"
           done
 
       - name: Commit and push results
+        if: ${{ always() && env.OUTPUT_DIR != '' }}
         run: |
+          if [ ! -d "$OUTPUT_DIR" ]; then
+            echo "Žádné výsledky k uložení."
+            exit 0
+          fi
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
