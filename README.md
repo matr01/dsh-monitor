@@ -3,21 +3,31 @@
 DeepSeek Harness pro monitorování informací na internetu.
 
 Agenti jsou spouštěni denně pomocí GitHub Actions (cron). Každý agent je definován
-v samostatném prompt souboru ve složce `prompts/`. Výsledky se ukládají do složky
-`output/<datum>/` a jsou automaticky commitovány zpět do repozitáře. Při ručním
-spuštění lze vstupem `suffix` zvolit jinou složku (např. `b` → `output/<datum>-b/`),
-aby se nepřepsaly výsledky dřívějšího běhu ze stejného dne.
+v samostatném prompt souboru ve složce `prompts/<sada>/`. Automatický běh používá
+sadu `default`, při ručním spuštění lze vstupem `prompt_set` vybrat `default`
+nebo `experimental`. Výsledky sady `default` se ukládají do složky `output/<datum>/`,
+ostatních sad do `output/<datum>-<sada>/`, a jsou automaticky commitovány zpět do
+repozitáře. Při ručním spuštění lze vstupem `suffix` přidat příponu (např. `b` →
+`output/<datum>-b/` nebo `output/<datum>-experimental-b/`),
+aby se nepřepsaly výsledky dřívějšího běhu stejné sady ze stejného dne.
 
 ## Struktura
 
-- `prompts/` – definice jednotlivých monitorovacích úkolů (jeden soubor = jeden monitor)
-- `output/` – výsledky běhů, členěné podle data
+- `prompts/default/` – monitory pro automatický běh (jeden soubor = jeden monitor)
+- `prompts/experimental/` – další monitory volitelné při ručním spuštění
+- `output/` – výsledky běhů, členěné podle data, sady a případné přípony
 - `.github/workflows/daily-agents.yml` – workflow, které agenty spouští
 
 ## Jak přidat nový monitor
 
-Stačí do složky `prompts/` přidat nový `.md` soubor s popisem úkolu.
-Workflow ho při dalším běhu automaticky zařadí a spustí.
+Stačí do složky `prompts/<sada>/` přidat nový `.md` soubor s popisem úkolu.
+Workflow ho při dalším běhu dané sady automaticky zařadí a spustí. Spouští pouze
+`.md` soubory přímo ve vybrané složce, nikoli v jejích podsložkách. Neexistující
+nebo prázdná sada způsobí chybu běhu.
+
+Novou sadu vytvořte jako složku pod `prompts/` a přidejte její název do
+`workflow_dispatch.inputs.prompt_set.options` ve workflow. Název může obsahovat
+pouze písmena A-Z a-z, číslice, podtržítko a pomlčku.
 
 ## Běh v CI
 

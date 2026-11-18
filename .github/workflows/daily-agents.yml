@@ -5,6 +5,13 @@ on:
     - cron: '0 4 * * *' # Každé úterý a pátek ve 4:00 UTC
   workflow_dispatch:       # Ruční spuštění
     inputs:
+      prompt_set:
+        description: Sada promptů
+        type: choice
+        options:
+          - default
+          - experimental
+        default: default
       model:
         description: Gemini model
         type: choice
@@ -18,8 +25,8 @@ on:
         default: gemini-3.5-flash-lite
       suffix:
         description: >-
-          Přípona výstupní složky, např. "b" → output/YYYY-MM-DD-b. Povolené znaky A-Z a-z 0-9 . _ -
-          Prázdné pole zapisuje do output/YYYY-MM-DD.
+          Přípona výstupní složky, např. "b" → output/YYYY-MM-DD-b (sada default)
+          nebo output/YYYY-MM-DD-<sada>-b. Povolené znaky A-Z a-z 0-9 . _ -.
         type: string
         required: false
         default: ''
@@ -40,20 +47,36 @@ jobs:
       options: --user root
 
     steps:
-      - name: Resolve output directory
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve prompt set and output directory
         env:
+          PROMPT_SET: ${{ inputs.prompt_set || 'default' }}
           OUTPUT_SUFFIX: ${{ inputs.suffix }}
         run: |
+          if ! printf '%s' "$PROMPT_SET" | grep -Eq '^[A-Za-z0-9_-]+$'; then
+            echo "::error::Neplatný název sady '$PROMPT_SET' (povolené znaky A-Z a-z 0-9 _ -)"
+            exit 1
+          fi
+          PROMPT_DIR="prompts/$PROMPT_SET"
+          if [ ! -d "$PROMPT_DIR" ]; then
+            echo "::error::Složka s prompty '$PROMPT_DIR' neexistuje"
+            exit 1
+          fi
           if [ -n "$OUTPUT_SUFFIX" ] && ! printf '%s' "$OUTPUT_SUFFIX" | grep -Eq '^[A-Za-z0-9._-]+$'; then
             echo "::error::Neplatný suffix '$OUTPUT_SUFFIX' (povolené znaky A-Z a-z 0-9 . _ -)"
             exit 1
           fi
-          OUTPUT_DIR="output/$(date -u +%Y-%m-%d)${OUTPUT_SUFFIX:+-$OUTPUT_SUFFIX}"
+          OUTPUT_NAME="$(date -u +%Y-%m-%d)"
+          if [ "$PROMPT_SET" != "default" ]; then
+            OUTPUT_NAME="$OUTPUT_NAME-$PROMPT_SET"
+          fi
+          OUTPUT_DIR="output/$OUTPUT_NAME${OUTPUT_SUFFIX:+-$OUTPUT_SUFFIX}"
+          echo "PROMPT_DIR=$PROMPT_DIR" >> "$GITHUB_ENV"
           echo "OUTPUT_DIR=$OUTPUT_DIR" >> "$GITHUB_ENV"
+          echo "Složka s prompty: $PROMPT_DIR"
           echo "Výstupní složka: $OUTPUT_DIR"
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Configure DSH
         env:
@@ -108,11 +131,15 @@ jobs:
                       maxTokens: 8192
           EOF
 
-      - name: Run all monitor agents sequentially
+      - name: Run selected monitor agents sequentially
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          for prompt_file in prompts/*.md; do
+          for prompt_file in "$PROMPT_DIR"/*.md; do
+            if [ ! -f "$prompt_file" ]; then
+              echo "::error::Chybí soubor promptu: $prompt_file (sada musí obsahovat .md prompty)"
+              exit 1
+            fi
             echo "=== Spouštím: $prompt_file ==="
             timeout --signal=TERM --kill-after=15s 30m dsh --profile headless "$(cat "$prompt_file")"
           done
