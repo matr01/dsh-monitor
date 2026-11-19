@@ -156,7 +156,14 @@ jobs:
               cat "$prompt_file"
               printf '\n\n# Kontext běhu\n'
               printf 'Výstupní složka tohoto běhu: `%s` (cesta od kořene repozitáře).\n' "$OUTPUT_DIR"
-              printf 'Hotové podklady čti pouze z této složky.\n'
+              # Podklady z output/ smí číst jen prompty se sekcí "Vstupní podklady"
+              # (syntéza); rešeršní prompty je jako zdroj používat nesmí.
+              if grep -q '^# Vstupní podklady' "$prompt_file"; then
+                printf 'Hotové podklady čti pouze z této složky.\n'
+              else
+                printf 'Složka slouží jen k určení data; soubory v `output/` nečti\n'
+                printf 'a nepoužívej je jako zdroj zpráv.\n'
+              fi
               printf 'Rozhodné datum v UTC je prvních 10 znaků názvu této složky;\n'
               printf 'použij je pro časové okno monitoringu.\n'
               printf 'Vlastní výstup ulož do kořene repozitáře pod názvem určeným promptem;\n'

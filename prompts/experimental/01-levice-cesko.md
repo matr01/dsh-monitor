@@ -11,6 +11,19 @@ levice, nikoli závěrečný přehled. Nezpracovávej Evropu ani svět.
 - Časové okno: poslední čtyři kalendářní dny včetně rozhodného data v UTC
   uvedeného v kontextu běhu. Na začátku podkladů uveď přesné datum od–do.
 
+## Zdroje a metoda vyhledávání
+- Primárním zdrojem jsou **webové stránky a RSS feedy** níže uvedených serverů.
+  Prohledávej je aktivně (web search / fetch), nikoli soubory v repozitáři.
+- Soubory v `output/` v tomto repozitáři **nejsou zdrojem zpráv** — jde o výstupy
+  jiných monitorů a nesmí být použity jako podklad pro tento úkol.
+- Pokud webové vyhledávání není dostupné, výslovně to uveď jako technické omezení
+  běhu — nekonstatuj „žádné zprávy nenalezeny“.
+
+## Konkrétní zdroje k prohledání (příklady)
+- Média: iRozhlas.cz, Seznam Zprávy, ČeskéNoviny.cz (ČTK), Deník N, ParlamentníListy.cz.
+- Strany: oficiální weby SOCDEM (dříve ČSSD), KSČM, Stačilo!.
+- Odbory a iniciativy: ČMKOS, případně relevantní sociální platformy.
+
 ## Postup a výstup
 - Vyber nejvýše šest relevantních, ověřených a navzájem odlišných zpráv.
   Upřednostni primární zdroje a důvěryhodná média; neprováděj vyčerpávající rešerši.

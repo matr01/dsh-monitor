@@ -12,6 +12,20 @@ levice, nikoli závěrečný přehled. Nezpracovávej českou ani mimoevropskou 
 - Časové okno: poslední čtyři kalendářní dny včetně rozhodného data v UTC
   uvedeného v kontextu běhu. Na začátku podkladů uveď přesné datum od–do.
 
+## Zdroje a metoda vyhledávání
+- Primárním zdrojem jsou **webové stránky a RSS feedy** níže uvedených serverů.
+  Prohledávej je aktivně (web search / fetch), nikoli soubory v repozitáři.
+- Soubory v `output/` v tomto repozitáři **nejsou zdrojem zpráv** — jde o výstupy
+  jiných monitorů a nesmí být použity jako podklad pro tento úkol.
+- Pokud webové vyhledávání není dostupné, výslovně to uveď jako technické omezení
+  běhu — nekonstatuj „žádné zprávy nenalezeny“.
+
+## Konkrétní zdroje k prohledání (příklady)
+- Média: Politico Europe, Euractiv, The Guardian, Le Monde, Tagesschau, nd (neues deutschland).
+- Strany a frakce: oficiální weby Die Linke, La France Insoumise, Party of the European Left,
+  frakce The Left v Evropském parlamentu.
+- Odbory: Evropská odborová konfederace (ETUC).
+
 ## Postup a výstup
 - Vyber nejvýše šest relevantních, ověřených a navzájem odlišných zpráv.
   Upřednostni primární zdroje a důvěryhodná média; neprováděj vyčerpávající rešerši.

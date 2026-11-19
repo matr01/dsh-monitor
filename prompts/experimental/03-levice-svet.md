@@ -12,6 +12,19 @@ levice, nikoli závěrečný přehled. Nezpracovávej českou ani evropskou scé
 - Časové okno: poslední čtyři kalendářní dny včetně rozhodného data v UTC
   uvedeného v kontextu běhu. Na začátku podkladů uveď přesné datum od–do.
 
+## Zdroje a metoda vyhledávání
+- Primárním zdrojem jsou **webové stránky a RSS feedy** níže uvedených serverů.
+  Prohledávej je aktivně (web search / fetch), nikoli soubory v repozitáři.
+- Soubory v `output/` v tomto repozitáři **nejsou zdrojem zpráv** — jde o výstupy
+  jiných monitorů a nesmí být použity jako podklad pro tento úkol.
+- Pokud webové vyhledávání není dostupné, výslovně to uveď jako technické omezení
+  běhu — nekonstatuj „žádné zprávy nenalezeny“.
+
+## Konkrétní zdroje k prohledání (příklady)
+- Média: Reuters, AP News, Al Jazeera, BBC News, The Guardian, Jacobin.
+- Odbory a organizace: Mezinárodní odborová konfederace (ITUC), Mezinárodní organizace práce (ILO).
+- Strany a hnutí: oficiální weby a prohlášení významných levicových stran a politiků mimo Evropu.
+
 ## Postup a výstup
 - Vyber nejvýše šest relevantních, ověřených a navzájem odlišných zpráv.
   Upřednostni primární zdroje a důvěryhodná média; neprováděj vyčerpávající rešerši.
