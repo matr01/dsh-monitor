@@ -14,6 +14,8 @@ chybějícího podkladu a nevytvářej výstup. Stejně postupuj, pokud podklady
 nepokrývají shodné požadované časové okno.
 Pokud rešerše výslovně uvádí nedostatek zpráv nebo nedostupnost zdrojů,
 přiznej to v odpovídající sekci; chybějící informace nedoplňuj z paměti.
+Rešerše obsahují kandidátní zprávy, nikoli hotové závěry: samostatně posuď
+jejich význam, kvalitu podkladů a vhodnost pro výsledný monitoring.
 
 # Rozsah sledování
 Zaměř se na tyto tři úrovně (v tomto pořadí):
@@ -40,6 +42,7 @@ Na začátku uveď přesné sledované období od–do. Výstup strukturuj strik
 - **Další důležité zprávy:**
   - (Max 3–5 odrážek s krátkým popisem)
 - **Doporučený zdroj:** (Odkaz na článek nebo oficiální prohlášení, pokud je k dispozici)
+- **Pokrytí:** (Stručná poznámka, pokud má rešerše podstatná omezení)
 
 ## 2. Evropská scéna
 - **Hlavní událost:** (1–2 věty)
@@ -47,6 +50,7 @@ Na začátku uveď přesné sledované období od–do. Výstup strukturuj strik
 - **Další důležité zprávy:**
   - (Max 3–5 odrážek)
 - **Doporučený zdroj:** (Odkaz, pokud je k dispozici)
+- **Pokrytí:** (Jen pokud má rešerše podstatná omezení)
 
 ## 3. Světová scéna
 - **Hlavní událost:** (1–2 věty)
@@ -54,12 +58,27 @@ Na začátku uveď přesné sledované období od–do. Výstup strukturuj strik
 - **Další důležité zprávy:**
   - (Max 3–5 odrážek)
 - **Doporučený zdroj:** (Odkaz, pokud je k dispozici)
+- **Pokrytí:** (Jen pokud má rešerše podstatná omezení)
 
 # Pravidla a omezení
-- **Deduplikace:** Pokud se stejná zpráva objevila ve více zdrojích, uveď ji pouze jednou.
-- **Kontext:** Pokud zpráva navazuje na starší událost, stručně připomeň kontext (1 věta).
-- **Fakta:** Vyhni se spekulacím a subjektivním soudům. Drž se faktů a přímých citací.
-- **Aktuálnost:** Striktně se drž společného čtyřdenního časového okna podkladů. Starší události uváděj pouze jako stručný kontext aktuální zprávy.
+- **Deduplikace:** Pokud se stejná zpráva objevila ve více zdrojích či podkladech,
+  uveď ji pouze jednou. Případnou chybně zařazenou zprávu přesuň do příslušné
+  geografické sekce, pokud to podklady umožňují.
+- **Kontext:** Pokud zpráva navazuje na starší událost, můžeš stručně připomenout
+  doložený kontext (1 věta).
+- **Fakta a zdroje:** Vyhni se spekulacím a subjektivním soudům. Rozlišuj tvrzení
+  aktérů od skutečností doložených zdroji. K hlavní události a dalším zprávám
+  připoj příslušné odkazy z podkladů, pokud jsou k dispozici.
+- **Míra ověření:** Zohledni, zda rešerše pracovala s textem článku, nebo jen
+  s titulkem či úryvkem. U nedostatečně ověřených zpráv přiznej omezení a
+  nepřidávej tvrzení, která podklady nedokládají. Pokud stav ověření v podkladu
+  chybí, považuj jej za neznámý.
+- **Trend nebo signál:** Zvol vlastní závěr přiměřený podkladům. Jednotlivou
+  událost lze uvést jako signál, ale netvrď sílící či dlouhodobý trend bez
+  odpovídající opory.
+- **Aktuálnost:** Striktně se drž společného čtyřdenního časového okna podkladů.
+  Starší události uváděj pouze jako stručný kontext aktuální zprávy. Nezaměňuj
+  datum publikace s datem události ani plánované akce s uskutečněnými.
 - **Nedostatek podkladů:** Počet odrážek je maximum, nikoli kvóta. Pokud není doložena hlavní událost nebo trend/signál, výslovně to uveď.
 
 Ulož jako `04-levice.md`.
