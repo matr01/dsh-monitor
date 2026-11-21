@@ -105,14 +105,14 @@ jobs:
                   # Free tier Gemini má limit požadavků/min; jeho překročení (429
                   # RESOURCE_EXHAUSTED) DSH hlásí jako QUOTA, proto se opakuje i QUOTA.
                   # Přetížení modelu (503 UNAVAILABLE) trvá i několik minut, proto
-                  # 5 pokusů s backoffem 30 s, 60 s, 120 s, 120 s, 120 s (~7,5 min).
+                  # 8 opakování: 30, 60, 120, 180, 180, 180, 180, 180 s (~18,5 min).
                   retryPolicy:
                     mode: normal
-                    maxRetries: 5
+                    maxRetries: 8
                     retryableCodes: [RATE_LIMIT, QUOTA, SERVER, EMPTY_RESPONSE, TIMEOUT, TRANSPORT]
                     backoff:
                       initialDelayMs: 30000
-                      maxDelayMs: 120000
+                      maxDelayMs: 180000
                       jitterRatio: 0.2
                   # contextWindow omezuje kontext, nikoli celkovou spotřebu tokenů za minutu.
                   models:
