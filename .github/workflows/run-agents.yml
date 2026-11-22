@@ -1,7 +1,7 @@
 name: Run Agents
 
 # Společná část všech běhů. Plánované profily ji volají přes workflow_call
-# (daily-default.yml, experimental-*.yml); ručně lze spustit libovolnou kombinaci.
+# (daily-default.yml, levice-*.yml); ručně lze spustit libovolnou kombinaci.
 on:
   workflow_call:
     # workflow_call nepodporuje typ choice; hodnoty se ověřují v kroku níže.
@@ -28,6 +28,7 @@ on:
         type: choice
         options:
           - default
+          - levice
           - experimental
         default: default
       phase:

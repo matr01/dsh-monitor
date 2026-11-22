@@ -5,7 +5,7 @@ DeepSeek Harness pro monitorování informací na internetu.
 Agenti jsou spouštěni podle rozvrhu pomocí GitHub Actions (cron). Každý agent je definován
 v samostatném prompt souboru ve složce `prompts/<sada>/`. Automatické běhy používají
 sady a fáze podle rozvrhu níže; při ručním spuštění lze vstupem `prompt_set`
-vybrat `default` nebo `experimental`. Výsledky sady `default` se ukládají do
+vybrat `default`, `levice` nebo `experimental`. Výsledky sady `default` se ukládají do
 složky `output/<datum>/`, ostatních sad do `output/<datum>-<sada>/`, a jsou
 automaticky commitovány zpět do repozitáře. Při ručním spuštění lze vstupem
 `suffix` přidat příponu (např. `b` →
@@ -24,8 +24,8 @@ automatického přechodu mezi zimním a letním časem:
 | Workflow | Dny | Místní čas | Sada | Fáze | Model |
 | --- | --- | --- | --- | --- | --- |
 | `daily-default.yml` | denně | 04:00 | `default` | `all` | `gemini-3.5-flash-lite` |
-| `experimental-research.yml` | úterý a sobota | 06:00 | `experimental` | `research` | `gemini-3.5-flash-lite` |
-| `experimental-synthesis.yml` | úterý a sobota | 09:00 | `experimental` | `synthesis` | `gemini-4-hydrogen` |
+| `levice-research.yml` | úterý a sobota | 06:00 | `levice` | `research` | `gemini-3.5-flash-lite` |
+| `levice-synthesis.yml` | úterý a sobota | 09:00 | `levice` | `synthesis` | `gemini-4-hydrogen` |
 
 Plánované workflow lze spustit i ručně bez vstupů se stejným profilem
 (aktuální datum v UTC, bez suffixu).
@@ -43,9 +43,21 @@ fázi a model celého běhu. Fáze `all` spouští všechny prompty jako dosud,
 Vstup `date` umožňuje zadat rozhodné datum v UTC ve formátu `YYYY-MM-DD`,
 například pro pozdější syntézu dříve uložených podkladů. Prázdná hodnota
 použije aktuální datum v UTC. Rešerše a syntéza musí používat stejnou sadu,
-datum a `suffix`; plánované experimental běhy sdílejí složku
-`output/<datum>-experimental/` bez suffixu. Syntetický běh načte podklady
+datum a `suffix`; plánované běhy levice sdílejí složku
+`output/<datum>-levice/` bez suffixu. Syntetický běh načte podklady
 commitované v aktuální větvi repozitáře.
+
+Sada `experimental` se spouští pouze ručně přes `Run Agents`: zvolte
+`prompt_set: experimental`, `phase: all` a `model: gemini-3.5-flash-lite`
+(výchozí model). Obsahuje jediný jednoduchý prompt `01-ai-zpravy.md`,
+který z Google News RSS připraví český souhrn zpráv o AI za poslední tři
+kalendářní dny včetně rozhodného data v UTC. Rešerše zahrnuje americkou,
+francouzskou a čínskou jazykovou edici, původní čínské zdroje a podle tématu
+další místní jazyky.
+Výběr zpráv nemá pevné regionální kvóty.
+Nemá vlastní spouštěcí workflow.
+Historické výsledky monitoringu levice zůstávají v původních složkách
+`output/<datum>-experimental/`; nové běhy levice je nepoužívají.
 
 Další plánovaný profil přidáte zkopírováním některého z plánovaných workflow
 a úpravou názvu, cronu a hodnot ve `with:`. Volající workflow musí mít
@@ -54,16 +66,17 @@ a úpravou názvu, cronu a hodnot ve `with:`. Volající workflow musí mít
 ## Struktura
 
 - `prompts/default/` – monitory pro automatický běh (jeden soubor = jeden monitor)
-- `prompts/experimental/` – vícekrokový monitoring spouštěný podle rozvrhu i ručně
+- `prompts/levice/` – vícekrokový monitoring levice spouštěný podle rozvrhu i ručně
+- `prompts/experimental/` – jednoduchý souhrn zpráv o AI, zatím pouze ručně
 - `output/` – výsledky běhů, členěné podle data, sady a případné přípony
 - `.github/workflows/run-agents.yml` – společné workflow, které agenty spouští
   (reusable i ruční spuštění)
-- `.github/workflows/daily-default.yml`, `experimental-research.yml`,
-  `experimental-synthesis.yml` – plánované profily
+- `.github/workflows/daily-default.yml`, `levice-research.yml`,
+  `levice-synthesis.yml` – plánované profily
 
 ## Vícekrokový monitoring levice
 
-Sada `experimental` obsahuje čtyři samostatné kroky, spouštěné podle vybrané
+Sada `levice` obsahuje čtyři samostatné kroky, spouštěné podle vybrané
 fáze v pořadí názvů souborů:
 
 1. `01-levice-cesko.md` – rešerše české scény.
