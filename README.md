@@ -2,7 +2,7 @@
 
 DeepSeek Harness pro monitorování informací na internetu.
 
-Agenti jsou spouštěni denně pomocí GitHub Actions (cron). Každý agent je definován
+Agenti jsou spouštěni podle rozvrhu pomocí GitHub Actions (cron). Každý agent je definován
 v samostatném prompt souboru ve složce `prompts/<sada>/`. Automatické běhy používají
 sady a fáze podle rozvrhu níže; při ručním spuštění lze vstupem `prompt_set`
 vybrat `default` nebo `experimental`. Výsledky sady `default` se ukládají do
@@ -21,11 +21,11 @@ Každý běh používá jeden model. Společná logika je v reusable workflow
 s pevnými parametry. Rozvrh používá časovou zónu `Europe/Prague`, včetně
 automatického přechodu mezi zimním a letním časem:
 
-| Workflow | Místní čas | Sada | Fáze | Model |
-| --- | --- | --- | --- | --- |
-| `daily-default.yml` | 04:00 | `default` | `all` | `gemini-3.5-flash-lite` |
-| `experimental-research.yml` | 06:00 | `experimental` | `research` | `gemini-3.5-flash-lite` |
-| `experimental-synthesis.yml` | 09:00 | `experimental` | `synthesis` | `gemini-4-hydrogen` |
+| Workflow | Dny | Místní čas | Sada | Fáze | Model |
+| --- | --- | --- | --- | --- | --- |
+| `daily-default.yml` | denně | 04:00 | `default` | `all` | `gemini-3.5-flash-lite` |
+| `experimental-research.yml` | úterý a sobota | 06:00 | `experimental` | `research` | `gemini-3.5-flash-lite` |
+| `experimental-synthesis.yml` | úterý a sobota | 09:00 | `experimental` | `synthesis` | `gemini-4-hydrogen` |
 
 Plánované workflow lze spustit i ručně bez vstupů se stejným profilem
 (aktuální datum v UTC, bez suffixu).
