@@ -34,6 +34,10 @@ Všímej si především těchto témat:
 - Vnitřní spory o směřování levice (ideologické střety, personální změny)
 
 # Formát výstupu
+Výstup je stručné shrnutí, nikoli podrobná zpráva: celý dokument má mít
+nejvýše přibližně 600 slov. Podklady nekopíruj ani nepřepisuj, pouze z nich
+vyber to podstatné. Každá odrážka má mít nejvýše 1–2 krátké věty.
+
 Na začátku uveď přesné sledované období od–do. Výstup strukturuj striktně do následujících sekcí. Pro každou geografickou úroveň dodrž tento formát:
 
 ## 1. Česká scéna
