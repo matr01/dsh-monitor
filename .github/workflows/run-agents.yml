@@ -1,9 +1,27 @@
-name: Daily Research Agents
+name: Run Agents
 
+# Společná část všech běhů. Plánované profily ji volají přes workflow_call
+# (daily-default.yml, experimental-*.yml); ručně lze spustit libovolnou kombinaci.
 on:
-  schedule:
-    - cron: '0 4 * * *' # Každý den ve 4:00 UTC
-  workflow_dispatch:       # Ruční spuštění
+  workflow_call:
+    # workflow_call nepodporuje typ choice; hodnoty se ověřují v kroku níže.
+    inputs:
+      prompt_set:
+        type: string
+        default: default
+      phase:
+        type: string
+        default: all
+      model:
+        type: string
+        default: gemini-3.5-flash-lite
+      date:
+        type: string
+        default: ''
+      suffix:
+        type: string
+        default: ''
+  workflow_dispatch:
     inputs:
       prompt_set:
         description: Sada promptů
@@ -12,8 +30,16 @@ on:
           - default
           - experimental
         default: default
+      phase:
+        description: Fáze běhu (all = vše, research = rešerše, synthesis = syntéza)
+        type: choice
+        options:
+          - all
+          - research
+          - synthesis
+        default: all
       model:
-        description: Gemini model
+        description: Gemini model pro celý běh
         type: choice
         options:
           - gemini-3.5-flash-lite
@@ -23,6 +49,11 @@ on:
           - gemini-3.6-flash
           - gemini-4-hydrogen
         default: gemini-3.5-flash-lite
+      date:
+        description: Rozhodné datum v UTC (YYYY-MM-DD); prázdné = dnešní datum v UTC
+        type: string
+        required: false
+        default: ''
       suffix:
         description: >-
           Přípona výstupní složky, např. "b" → output/YYYY-MM-DD-b (sada default)
@@ -53,11 +84,21 @@ jobs:
           # Re-run musí načíst i výsledky commitované předchozím pokusem.
           ref: ${{ github.ref }}
 
-      - name: Resolve prompt set and output directory
+      - name: Resolve run parameters and output directory
         env:
-          PROMPT_SET: ${{ inputs.prompt_set || 'default' }}
+          PROMPT_SET: ${{ inputs.prompt_set }}
+          PHASE: ${{ inputs.phase }}
+          MODEL: ${{ inputs.model }}
+          RUN_DATE: ${{ inputs.date }}
           OUTPUT_SUFFIX: ${{ inputs.suffix }}
         run: |
+          case "$PHASE" in
+            all|research|synthesis) ;;
+            *)
+              echo "::error::Neplatná fáze '$PHASE' (all, research nebo synthesis)"
+              exit 1
+              ;;
+          esac
           if ! printf '%s' "$PROMPT_SET" | grep -Eq '^[A-Za-z0-9_-]+$'; then
             echo "::error::Neplatný název sady '$PROMPT_SET' (povolené znaky A-Z a-z 0-9 _ -)"
             exit 1
@@ -71,19 +112,32 @@ jobs:
             echo "::error::Neplatný suffix '$OUTPUT_SUFFIX' (povolené znaky A-Z a-z 0-9 . _ -)"
             exit 1
           fi
-          OUTPUT_NAME="$(date -u +%Y-%m-%d)"
+          if [ -z "$RUN_DATE" ]; then
+            RUN_DATE="$(date -u +%Y-%m-%d)"
+          fi
+          if ! printf '%s' "$RUN_DATE" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "::error::Neplatné datum '$RUN_DATE' (očekáváno YYYY-MM-DD)"
+            exit 1
+          fi
+          if ! normalized_date="$(date -u -d "$RUN_DATE" +%Y-%m-%d)" || [ "$normalized_date" != "$RUN_DATE" ]; then
+            echo "::error::Neplatné kalendářní datum '$RUN_DATE'"
+            exit 1
+          fi
+          OUTPUT_NAME="$RUN_DATE"
           if [ "$PROMPT_SET" != "default" ]; then
             OUTPUT_NAME="$OUTPUT_NAME-$PROMPT_SET"
           fi
           OUTPUT_DIR="output/$OUTPUT_NAME${OUTPUT_SUFFIX:+-$OUTPUT_SUFFIX}"
           echo "PROMPT_DIR=$PROMPT_DIR" >> "$GITHUB_ENV"
           echo "OUTPUT_DIR=$OUTPUT_DIR" >> "$GITHUB_ENV"
+          echo "PHASE=$PHASE" >> "$GITHUB_ENV"
+          echo "MODEL=$MODEL" >> "$GITHUB_ENV"
           echo "Složka s prompty: $PROMPT_DIR"
           echo "Výstupní složka: $OUTPUT_DIR"
+          echo "Fáze: $PHASE"
+          echo "Model: $MODEL"
 
       - name: Configure DSH
-        env:
-          MODEL: ${{ inputs.model || 'gemini-3.5-flash-lite' }}
         run: |
           mkdir -p "$DSH_HOME"
           cat > "$DSH_HOME/cordis.patch.yml" << EOF
@@ -141,24 +195,48 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           mkdir -p "$OUTPUT_DIR"
+          selected_prompts=0
           for prompt_file in "$PROMPT_DIR"/*.md; do
             if [ ! -f "$prompt_file" ]; then
               echo "::error::Chybí soubor promptu: $prompt_file (sada musí obsahovat .md prompty)"
               exit 1
             fi
+            is_synthesis=false
+            if grep -q '^# Vstupní podklady' "$prompt_file"; then
+              is_synthesis=true
+            fi
+            if [ "$PHASE" = "research" ] && [ "$is_synthesis" = true ]; then
+              continue
+            fi
+            if [ "$PHASE" = "synthesis" ] && [ "$is_synthesis" = false ]; then
+              continue
+            fi
+            selected_prompts=$((selected_prompts + 1))
             output_file="${prompt_file##*/}"
             if [ -s "$OUTPUT_DIR/$output_file" ]; then
               echo "=== Přeskakuji hotový prompt: $prompt_file ==="
               continue
             fi
-            echo "=== Spouštím: $prompt_file ==="
+            if [ "$is_synthesis" = true ]; then
+              for source_prompt in "$PROMPT_DIR"/*.md; do
+                if grep -q '^# Vstupní podklady' "$source_prompt"; then
+                  continue
+                fi
+                source_output="${source_prompt##*/}"
+                if [ ! -f "$OUTPUT_DIR/$source_output" ] || [ ! -s "$OUTPUT_DIR/$source_output" ]; then
+                  echo "::error::Chybí neprázdný podklad '$OUTPUT_DIR/$source_output'; syntézu nelze spustit"
+                  exit 1
+                fi
+              done
+            fi
+            echo "=== Spouštím: $prompt_file (model: $MODEL) ==="
             prompt_text="$(
               cat "$prompt_file"
               printf '\n\n# Kontext běhu\n'
               printf 'Výstupní složka tohoto běhu: `%s` (cesta od kořene repozitáře).\n' "$OUTPUT_DIR"
               # Podklady z output/ smí číst jen prompty se sekcí "Vstupní podklady"
               # (syntéza); rešeršní prompty je jako zdroj používat nesmí.
-              if grep -q '^# Vstupní podklady' "$prompt_file"; then
+              if [ "$is_synthesis" = true ]; then
                 printf 'Hotové podklady čti pouze z této složky.\n'
               else
                 printf 'Složka slouží jen k určení data; soubory v `output/` nečti\n'
@@ -176,6 +254,10 @@ jobs:
             fi
             mv "$output_file" "$OUTPUT_DIR/"
           done
+          if [ "$selected_prompts" -eq 0 ]; then
+            echo "::error::Sada '$PROMPT_DIR' neobsahuje prompty pro fázi '$PHASE'"
+            exit 1
+          fi
 
       - name: Commit and push results
         if: ${{ always() && env.OUTPUT_DIR != '' }}

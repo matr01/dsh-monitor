@@ -1,0 +1,19 @@
+name: Experimental – syntéza
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+      timezone: 'Europe/Prague'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    uses: ./.github/workflows/run-agents.yml
+    with:
+      prompt_set: experimental
+      phase: synthesis
+      model: gemini-4-hydrogen
+    secrets: inherit

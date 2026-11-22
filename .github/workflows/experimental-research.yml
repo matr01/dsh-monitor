@@ -1,0 +1,19 @@
+name: Experimental – rešerše
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+      timezone: 'Europe/Prague'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    uses: ./.github/workflows/run-agents.yml
+    with:
+      prompt_set: experimental
+      phase: research
+      model: gemini-3.5-flash-lite
+    secrets: inherit

@@ -1,0 +1,19 @@
+name: Default
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+      timezone: 'Europe/Prague'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    uses: ./.github/workflows/run-agents.yml
+    with:
+      prompt_set: default
+      phase: all
+      model: gemini-3.5-flash-lite
+    secrets: inherit
