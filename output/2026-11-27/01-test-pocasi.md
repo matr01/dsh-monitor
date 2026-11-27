@@ -1,0 +1,8 @@
+- datum: pátek 27. listopadu 2026
+- základní charakteristiky očekávaného počasí:
+  - teplota: rozsah pro celý den od -4 °C do -1 °C
+  - oblačnost: zataženo až oblačno (100% pokrytí)
+  - vítr: mírný vítr ze směru sever (N) rychlostí kolem 6–8 km/h
+  - srážky: občasné slabé sněhové přeháňky (úhrn srážek cca 0,7 cm sněhu)
+  - východ/západ slunce: východ 07:30, západ 16:07
+- zdroj: [wttr.in/Vlašim](https://wttr.in/Vlašim)
